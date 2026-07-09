@@ -1,0 +1,63 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import type { Product, Sale, StoreSetting, Unit } from "@/lib/types";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Receipt } from "@/components/Receipt";
+
+export default function RiwayatDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [sale, setSale] = useState<Sale | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [storeSetting, setStoreSetting] = useState<StoreSetting | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      api.get<Sale>(`/sales/${params.id}`),
+      api.get<Product[]>("/products"),
+      api.get<Unit[]>("/units"),
+      api.get<StoreSetting>("/store-settings"),
+    ])
+      .then(([s, p, u, ss]) => {
+        setSale(s);
+        setProducts(p);
+        setUnits(u);
+        setStoreSetting(ss);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat transaksi"))
+      .finally(() => setLoading(false));
+  }, [params.id]);
+
+  function productName(id: number) {
+    return products.find((p) => p.id === id)?.name ?? `Produk #${id}`;
+  }
+  function unitName(id: number) {
+    return units.find((u) => u.id === id)?.abbreviation || units.find((u) => u.id === id)?.name || "-";
+  }
+
+  return (
+    <div>
+      <div className="no-print">
+        <PageHeader
+          title="Detail Transaksi"
+          action={
+            <Button variant="secondary" onClick={() => router.push("/transaksi/riwayat")}>
+              &larr; Kembali
+            </Button>
+          }
+        />
+      </div>
+      {loading && <p className="text-sm text-gray-400">Memuat...</p>}
+      {error && <Alert message={error} />}
+      {sale && <Receipt sale={sale} storeSetting={storeSetting} unitName={unitName} productName={productName} />}
+    </div>
+  );
+}
