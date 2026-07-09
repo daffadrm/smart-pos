@@ -35,9 +35,9 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
         return crud.create_product(db, product)
     except exceptions.ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="SKU atau barcode sudah digunakan")
+        raise HTTPException(status_code=400, detail=product_imports.integrity_error_message(e))
 
 
 @router.get("", response_model=List[schemas.ProductResponse])
@@ -92,9 +92,9 @@ def update_product(product_id: int, data: schemas.ProductCreate, db: Session = D
         db_product = crud.update_product(db, product_id, data)
     except exceptions.ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="SKU atau barcode sudah digunakan")
+        raise HTTPException(status_code=400, detail=product_imports.integrity_error_message(e))
     if db_product is None:
         raise HTTPException(status_code=404, detail="Produk tidak ditemukan")
     return db_product

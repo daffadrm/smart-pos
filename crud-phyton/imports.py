@@ -44,6 +44,24 @@ def _blank(value) -> bool:
     return value is None or str(value).strip() == ""
 
 
+def _price(value) -> float:
+    """Blank price cells default to 0; non-blank non-numeric values raise ValueError."""
+    if _blank(value):
+        return 0.0
+    return float(value)
+
+
+def integrity_error_message(error: IntegrityError) -> str:
+    detail = str(error.orig).lower()
+    if "barcode" in detail:
+        return "Barcode sudah digunakan"
+    if "sku" in detail:
+        return "SKU sudah digunakan"
+    if "product_units" in detail:
+        return "Gagal menyimpan data satuan produk, silakan coba lagi"
+    return "Data produk bentrok dengan data lain yang sudah ada"
+
+
 def build_template_workbook() -> openpyxl.Workbook:
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -76,10 +94,13 @@ def _parse_extra_unit(cell, row, suffix: str):
         return None, None
     try:
         conversion = int(cell(row, f"konversi {suffix}"))
-        buy_price = float(cell(row, f"harga beli {suffix}"))
-        sell_price = float(cell(row, f"harga jual {suffix}"))
     except (TypeError, ValueError):
-        return None, f"Konversi/Harga Beli/Harga Jual satuan {suffix} harus berupa angka"
+        return None, f"Konversi satuan {suffix} harus berupa angka"
+    try:
+        buy_price = _price(cell(row, f"harga beli {suffix}"))
+        sell_price = _price(cell(row, f"harga jual {suffix}"))
+    except ValueError:
+        return None, f"Harga Beli/Harga Jual satuan {suffix} harus berupa angka"
     return {
         "unit_name": str(unit_name_raw).strip(),
         "conversion": conversion,
@@ -147,9 +168,9 @@ def import_products_from_excel(db: Session, content: bytes) -> schemas.ProductIm
             )
             continue
         try:
-            buy1 = float(cell(row, "harga beli 1"))
-            sell1 = float(cell(row, "harga jual 1"))
-        except (TypeError, ValueError):
+            buy1 = _price(cell(row, "harga beli 1"))
+            sell1 = _price(cell(row, "harga jual 1"))
+        except ValueError:
             errors.append(
                 schemas.ProductImportRowError(
                     row=row_num, product_name=name, message="Harga Beli 1 / Harga Jual 1 harus berupa angka"
@@ -210,8 +231,10 @@ def import_products_from_excel(db: Session, content: bytes) -> schemas.ProductIm
         except exceptions.ValidationError as e:
             db.rollback()
             errors.append(schemas.ProductImportRowError(row=row_num, product_name=name, message=str(e)))
-        except IntegrityError:
+        except IntegrityError as e:
             db.rollback()
-            errors.append(schemas.ProductImportRowError(row=row_num, product_name=name, message="Barcode sudah digunakan"))
+            errors.append(
+                schemas.ProductImportRowError(row=row_num, product_name=name, message=_integrity_error_message(e))
+            )
 
     return schemas.ProductImportResult(total_rows=total_rows, created=created, errors=errors)
