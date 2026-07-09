@@ -104,6 +104,10 @@ Mengikuti struktur menu di PRD (§6):
 - **Admin** — akses penuh ke semua menu.
 - **Kasir** — hanya Penjualan dan Riwayat Transaksi (mengikuti PRD §4).
 
+## Deploy ke Production
+
+Untuk deploy permanen (bisa diakses publik lewat internet, bukan cuma `localhost`), lihat [`DEPLOYMENT.md`](DEPLOYMENT.md) — panduan lengkap deploy backend ke Railway (dengan Postgres) dan frontend ke Vercel.
+
 ## Troubleshooting
 
 - **Server backend tidak merespons setelah edit kode**: di Windows, `uvicorn --reload` kadang meninggalkan proses worker "nyangkut" di port 8001 meski proses utamanya sudah dimatikan. Cek `netstat -ano | grep :8001`, kalau ada PID lain selain yang baru dijalankan, matikan paksa (`taskkill //PID <pid> //F`) lalu jalankan ulang `python main.py`.
