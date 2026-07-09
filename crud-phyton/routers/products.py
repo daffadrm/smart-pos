@@ -102,7 +102,12 @@ def update_product(product_id: int, data: schemas.ProductCreate, db: Session = D
 
 @router.delete("/{product_id}", dependencies=[Depends(require_roles("admin"))])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
-    db_product = crud.delete_product(db, product_id)
-    if db_product is None:
+    if crud.get_product(db, product_id) is None:
         raise HTTPException(status_code=404, detail="Produk tidak ditemukan")
+    if crud.product_has_sales(db, product_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Produk sudah pernah terjual (ada di riwayat transaksi penjualan), tidak bisa dihapus. Nonaktifkan produk sebagai gantinya.",
+        )
+    crud.delete_product(db, product_id)
     return {"message": f"Produk dengan ID {product_id} berhasil dihapus"}

@@ -267,9 +267,18 @@ def update_product(db: Session, product_id: int, data: schemas.ProductCreate):
     return product
 
 
+def product_has_sales(db: Session, product_id: int) -> bool:
+    """True if the product was ever actually sold. Only this blocks hard delete —
+    deleting a SaleItem would corrupt an existing invoice's totals. Stock movements
+    with no sales attached carry no downstream financial record, so those are safe
+    to cascade-delete along with the product."""
+    return db.query(models.SaleItem).filter(models.SaleItem.product_id == product_id).first() is not None
+
+
 def delete_product(db: Session, product_id: int):
     product = db.get(models.Product, product_id)
     if product:
+        db.query(models.StockMovement).filter(models.StockMovement.product_id == product_id).delete()
         db.delete(product)
         db.commit()
     return product

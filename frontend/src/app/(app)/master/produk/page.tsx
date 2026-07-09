@@ -326,7 +326,13 @@ export default function ProdukPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
+                  <RowActions
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleting(item);
+                    }}
+                  />
                 </td>
               </tr>
               );
@@ -493,9 +499,13 @@ export default function ProdukPage() {
       <ConfirmDialog
         open={!!deleting}
         title="Hapus Produk"
-        message={`Yakin ingin menghapus produk "${deleting?.name}"? ${deleteError ?? ""}`}
+        message={`Yakin ingin menghapus produk "${deleting?.name}"?`}
+        error={deleteError}
         onConfirm={handleDelete}
-        onCancel={() => setDeleting(null)}
+        onCancel={() => {
+          setDeleting(null);
+          setDeleteError(null);
+        }}
         loading={deleteLoading}
       />
 

@@ -164,7 +164,13 @@ export default function KategoriPage() {
                 <td className="px-4 py-2.5 font-medium text-gray-900">{item.name}</td>
                 <td className="px-4 py-2.5 text-gray-600">{item.description || "-"}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
+                  <RowActions
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleting(item);
+                    }}
+                  />
                 </td>
               </tr>
             ))}
@@ -210,9 +216,13 @@ export default function KategoriPage() {
       <ConfirmDialog
         open={!!deleting}
         title="Hapus Kategori"
-        message={`Yakin ingin menghapus kategori "${deleting?.name}"? ${deleteError ?? ""}`}
+        message={`Yakin ingin menghapus kategori "${deleting?.name}"?`}
+        error={deleteError}
         onConfirm={handleDelete}
-        onCancel={() => setDeleting(null)}
+        onCancel={() => {
+          setDeleting(null);
+          setDeleteError(null);
+        }}
         loading={deleteLoading}
       />
 

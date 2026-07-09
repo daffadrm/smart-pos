@@ -194,7 +194,13 @@ export default function PenggunaPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
+                  <RowActions
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleting(item);
+                    }}
+                  />
                 </td>
               </tr>
             ))}
@@ -263,9 +269,13 @@ export default function PenggunaPage() {
       <ConfirmDialog
         open={!!deleting}
         title="Hapus Pengguna"
-        message={`Yakin ingin menghapus pengguna "${deleting?.username}"? ${deleteError ?? ""}`}
+        message={`Yakin ingin menghapus pengguna "${deleting?.username}"?`}
+        error={deleteError}
         onConfirm={handleDelete}
-        onCancel={() => setDeleting(null)}
+        onCancel={() => {
+          setDeleting(null);
+          setDeleteError(null);
+        }}
         loading={deleteLoading}
       />
     </div>
