@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Category } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -9,6 +9,9 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormRow, Input, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { BulkCategoryModal } from "@/components/BulkCategoryModal";
+import { Pagination } from "@/components/ui/Pagination";
+import { RowActions } from "@/components/ui/RowActions";
 
 type FormState = { name: string; description: string };
 const emptyForm: FormState = { name: "", description: "" };
@@ -27,6 +30,28 @@ export default function KategoriPage() {
   const [deleting, setDeleting] = useState<Category | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   function load() {
     setLoading(true);
@@ -90,8 +115,25 @@ export default function KategoriPage() {
 
   return (
     <div>
-      <PageHeader title="Kategori" action={<Button onClick={openCreate}>+ Tambah Kategori</Button>} />
+      <PageHeader
+        title="Kategori"
+        action={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setBulkOpen(true)}>
+              Bulk Kategori
+            </Button>
+            <Button onClick={openCreate}>+ Tambah Kategori</Button>
+          </div>
+        }
+      />
       {error && <Alert message={error} />}
+
+      <Input
+        placeholder="Cari nama atau deskripsi..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mb-3 max-w-sm"
+      />
 
       <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -110,29 +152,35 @@ export default function KategoriPage() {
                 </td>
               </tr>
             )}
-            {!loading && items.length === 0 && (
+            {!loading && filteredItems.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                  Belum ada kategori
+                  {items.length === 0 ? "Belum ada kategori" : "Kategori tidak ditemukan"}
                 </td>
               </tr>
             )}
-            {items.map((item) => (
+            {paginatedItems.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-2.5 font-medium text-gray-900">{item.name}</td>
                 <td className="px-4 py-2.5 text-gray-600">{item.description || "-"}</td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => openEdit(item)} className="mr-3 text-indigo-600 hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => setDeleting(item)} className="text-red-600 hover:underline">
-                    Hapus
-                  </button>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredItems.length}
+          pageSize={pageSize}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Kategori" : "Tambah Kategori"}>
@@ -167,6 +215,8 @@ export default function KategoriPage() {
         onCancel={() => setDeleting(null)}
         loading={deleteLoading}
       />
+
+      <BulkCategoryModal open={bulkOpen} onClose={() => setBulkOpen(false)} onDone={load} />
     </div>
   );
 }

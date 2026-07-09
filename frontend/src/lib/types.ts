@@ -15,6 +15,18 @@ export type Category = {
   description: string | null;
 };
 
+export type CategoryBulkRowError = {
+  row: number;
+  name: string | null;
+  message: string;
+};
+
+export type CategoryBulkResult = {
+  total_rows: number;
+  created: number;
+  errors: CategoryBulkRowError[];
+};
+
 export type Unit = {
   id: number;
   name: string;

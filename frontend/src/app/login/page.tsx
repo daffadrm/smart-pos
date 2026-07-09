@@ -33,10 +33,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm rounded-xl border border-gray-200/70 bg-white shadow-sm p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">SmartPOS</h1>
+        <h1 className="text-xl font-semibold text-gray-900">BSI Plastik</h1>
         <p className="mt-1 text-sm text-gray-500">Masuk untuk melanjutkan</p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 space-y-4"
+        >
           {error && <Alert message={error} />}
           <div>
             <Label required>Username</Label>
@@ -58,7 +61,11 @@ export default function LoginPage() {
               autoComplete="current-password"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+          >
             {loading ? "Memproses..." : "Masuk"}
           </Button>
         </form>

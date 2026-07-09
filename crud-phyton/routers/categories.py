@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import crud
+import exceptions
 import schemas
 from deps import get_current_user, get_db, require_roles
 
@@ -20,9 +21,22 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
     try:
         return crud.create_category(db, category)
+    except exceptions.ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Nama kategori sudah digunakan")
+
+
+@router.post(
+    "/bulk",
+    response_model=schemas.CategoryBulkResult,
+    dependencies=[Depends(require_roles("admin"))],
+)
+def bulk_create_categories(data: schemas.CategoryBulkCreate, db: Session = Depends(get_db)):
+    if not data.items:
+        raise HTTPException(status_code=400, detail="Daftar kategori kosong")
+    return crud.bulk_create_categories(db, data.items)
 
 
 @router.get("", response_model=List[schemas.CategoryResponse])
@@ -46,6 +60,8 @@ def read_category(category_id: int, db: Session = Depends(get_db), _=Depends(get
 def update_category(category_id: int, data: schemas.CategoryCreate, db: Session = Depends(get_db)):
     try:
         db_category = crud.update_category(db, category_id, data)
+    except exceptions.ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Nama kategori sudah digunakan")

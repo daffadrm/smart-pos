@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Product, Sale, Unit } from "@/lib/types";
+import type { Product, Sale, StoreSetting, Unit } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
@@ -16,16 +16,23 @@ export default function RiwayatTransaksiPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [storeSetting, setStoreSetting] = useState<StoreSetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Sale | null>(null);
 
   useEffect(() => {
-    Promise.all([api.get<Sale[]>("/sales"), api.get<Product[]>("/products"), api.get<Unit[]>("/units")])
-      .then(([s, p, u]) => {
+    Promise.all([
+      api.get<Sale[]>("/sales"),
+      api.get<Product[]>("/products"),
+      api.get<Unit[]>("/units"),
+      api.get<StoreSetting>("/store-settings"),
+    ])
+      .then(([s, p, u, ss]) => {
         setSales(s);
         setProducts(p);
         setUnits(u);
+        setStoreSetting(ss);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat riwayat transaksi"))
       .finally(() => setLoading(false));
@@ -36,6 +43,10 @@ export default function RiwayatTransaksiPage() {
   }
   function unitName(id: number) {
     return units.find((u) => u.id === id)?.abbreviation || units.find((u) => u.id === id)?.name || "-";
+  }
+  function baseUnitName(productId: number) {
+    const product = products.find((p) => p.id === productId);
+    return product ? unitName(product.base_unit_id) : "-";
   }
 
   return (
@@ -93,6 +104,8 @@ export default function RiwayatTransaksiPage() {
         onClose={() => setSelected(null)}
         productName={productName}
         unitName={unitName}
+        baseUnitName={baseUnitName}
+        storeSetting={storeSetting}
       />
     </div>
   );

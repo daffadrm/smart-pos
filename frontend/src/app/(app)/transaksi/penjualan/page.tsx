@@ -64,6 +64,10 @@ export default function PenjualanPage() {
   function productName(id: number) {
     return products.find((p) => p.id === id)?.name ?? `Produk #${id}`;
   }
+  function baseUnitName(productId: number) {
+    const product = products.find((p) => p.id === productId);
+    return product ? unitName(product.base_unit_id) : "-";
+  }
   function findProductUnit(productId: number, unitId: number) {
     return products.find((p) => p.id === productId)?.units.find((u) => u.unit_id === unitId);
   }
@@ -140,7 +144,13 @@ export default function PenjualanPage() {
         <div className="no-print">
           <PageHeader title="Transaksi Berhasil" action={<Button onClick={startNewSale}>+ Transaksi Baru</Button>} />
         </div>
-        <Receipt sale={completedSale} storeSetting={storeSetting} unitName={unitName} productName={productName} />
+        <Receipt
+          sale={completedSale}
+          storeSetting={storeSetting}
+          unitName={unitName}
+          productName={productName}
+          baseUnitName={baseUnitName}
+        />
       </div>
     );
   }
@@ -231,6 +241,11 @@ export default function PenjualanPage() {
                         {pu ? formatCurrency(pu.sell_price * line.qty) : "-"}
                       </p>
                     </div>
+                    {pu && product && pu.conversion > 1 && (
+                      <p className="mt-1 text-xs text-gray-400">
+                        1 {unitName(line.unit_id)} {pu.conversion} {unitName(product.base_unit_id)}
+                      </p>
+                    )}
                   </div>
                 );
               })}

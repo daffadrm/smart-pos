@@ -42,6 +42,10 @@ export default function RiwayatDetailPage() {
   function unitName(id: number) {
     return units.find((u) => u.id === id)?.abbreviation || units.find((u) => u.id === id)?.name || "-";
   }
+  function baseUnitName(productId: number) {
+    const product = products.find((p) => p.id === productId);
+    return product ? unitName(product.base_unit_id) : "-";
+  }
 
   return (
     <div>
@@ -57,7 +61,15 @@ export default function RiwayatDetailPage() {
       </div>
       {loading && <p className="text-sm text-gray-400">Memuat...</p>}
       {error && <Alert message={error} />}
-      {sale && <Receipt sale={sale} storeSetting={storeSetting} unitName={unitName} productName={productName} />}
+      {sale && (
+        <Receipt
+          sale={sale}
+          storeSetting={storeSetting}
+          unitName={unitName}
+          productName={productName}
+          baseUnitName={baseUnitName}
+        />
+      )}
     </div>
   );
 }

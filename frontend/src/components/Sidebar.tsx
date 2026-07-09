@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -73,22 +75,47 @@ function NavLink({
   onNavigate: () => void;
 }) {
   const Icon = item.icon;
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+
+  function handleMouseEnter() {
+    if (!collapsed || !linkRef.current) return;
+    const rect = linkRef.current.getBoundingClientRect();
+    setTooltipPos({ top: rect.top + rect.height / 2, left: rect.right + 8 });
+  }
+
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      title={collapsed ? item.label : undefined}
-      className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        collapsed ? "justify-center" : ""
-      } ${
-        active
-          ? "bg-indigo-50 text-indigo-700"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-      }`}
-    >
-      <Icon size={18} strokeWidth={2} className={active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"} />
-      {!collapsed && <span className="truncate">{item.label}</span>}
-    </Link>
+    <>
+      <Link
+        ref={linkRef}
+        href={item.href}
+        onClick={onNavigate}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setTooltipPos(null)}
+        className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          collapsed ? "lg:justify-center" : ""
+        } ${
+          active
+            ? "bg-indigo-50 text-indigo-700"
+            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+        }`}
+      >
+        <Icon size={18} strokeWidth={2} className={active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"} />
+        <span className={`truncate ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+      </Link>
+      {collapsed &&
+        tooltipPos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-60 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg"
+            style={{ top: tooltipPos.top, left: tooltipPos.left }}
+          >
+            {item.label}
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
@@ -106,7 +133,6 @@ export function Sidebar({
   onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
-
   return (
     <>
       {mobileOpen && (
@@ -114,17 +140,20 @@ export function Sidebar({
       )}
 
       <aside
-        className={`no-print fixed inset-y-0 left-0 z-50 flex flex-col border-r border-gray-200 bg-white transition-all duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 ${
+        className={`no-print fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-all duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
-        } ${collapsed ? "lg:w-[72px]" : "w-64 lg:w-64"}`}
+        } ${collapsed ? "lg:w-[72px]" : "lg:w-64"}`}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
-          {!collapsed && <span className="text-lg font-bold tracking-tight text-indigo-600">SmartPOS</span>}
-          {collapsed && <span className="mx-auto text-lg font-bold text-indigo-600">S</span>}
+          <span className={`text-lg font-bold tracking-tight text-indigo-600 ${collapsed ? "lg:hidden" : ""}`}>
+            SmartPOS
+          </span>
+          {collapsed && <span className="mx-auto hidden text-lg font-bold text-indigo-600 lg:block">S</span>}
           <button onClick={onCloseMobile} className="text-gray-400 hover:text-gray-600 lg:hidden" aria-label="Tutup menu">
             <X size={20} />
           </button>
         </div>
+
 
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           {NAV.map((item) => {
@@ -150,10 +179,14 @@ export function Sidebar({
 
             return (
               <div key={item.label}>
-                {!collapsed && (
-                  <p className="px-3 text-xs font-semibold uppercase tracking-wide text-gray-400">{item.label}</p>
-                )}
-                {collapsed && <div className="mx-2 mb-2 border-t border-gray-100" />}
+                <p
+                  className={`px-3 text-xs font-semibold uppercase tracking-wide text-gray-400 ${
+                    collapsed ? "lg:hidden" : ""
+                  }`}
+                >
+                  {item.label}
+                </p>
+                {collapsed && <div className="mx-2 mb-2 hidden border-t border-gray-100 lg:block" />}
                 <div className="mt-1 space-y-0.5">
                   {items.map((sub) => (
                     <NavLink

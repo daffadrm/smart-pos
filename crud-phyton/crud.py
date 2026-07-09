@@ -1,7 +1,7 @@
 import datetime
 import re
 
-from sqlalchemy import Date, cast, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import exceptions
@@ -55,7 +55,16 @@ def delete_user(db: Session, user_id: int):
 
 # ----- Category -----
 
+def _category_name_taken(db: Session, name: str, exclude_id: int | None = None) -> bool:
+    query = db.query(models.Category).filter(func.lower(models.Category.name) == name.strip().lower())
+    if exclude_id is not None:
+        query = query.filter(models.Category.id != exclude_id)
+    return query.first() is not None
+
+
 def create_category(db: Session, category: schemas.CategoryCreate):
+    if _category_name_taken(db, category.name):
+        raise exceptions.ValidationError(f"Kategori '{category.name}' sudah digunakan")
     db_category = models.Category(**category.model_dump())
     db.add(db_category)
     db.commit()
@@ -73,12 +82,42 @@ def get_category(db: Session, category_id: int):
 
 def update_category(db: Session, category_id: int, data: schemas.CategoryCreate):
     category = db.get(models.Category, category_id)
-    if category:
-        for key, value in data.model_dump().items():
-            setattr(category, key, value)
-        db.commit()
-        db.refresh(category)
+    if category is None:
+        return None
+    if _category_name_taken(db, data.name, exclude_id=category_id):
+        raise exceptions.ValidationError(f"Kategori '{data.name}' sudah digunakan")
+    for key, value in data.model_dump().items():
+        setattr(category, key, value)
+    db.commit()
+    db.refresh(category)
     return category
+
+
+def bulk_create_categories(db: Session, items: list[schemas.CategoryCreate]) -> schemas.CategoryBulkResult:
+    errors: list[schemas.CategoryBulkRowError] = []
+    seen_names: set[str] = set()
+    created = 0
+
+    for idx, item in enumerate(items, start=1):
+        name = item.name.strip()
+        if not name:
+            errors.append(schemas.CategoryBulkRowError(row=idx, name=None, message="Nama kosong"))
+            continue
+        key = name.lower()
+        if key in seen_names:
+            errors.append(
+                schemas.CategoryBulkRowError(row=idx, name=name, message=f"'{name}' duplikat di daftar yang di-paste")
+            )
+            continue
+        if _category_name_taken(db, name):
+            errors.append(schemas.CategoryBulkRowError(row=idx, name=name, message=f"Kategori '{name}' sudah ada"))
+            continue
+        seen_names.add(key)
+        db.add(models.Category(name=name, description=item.description))
+        db.commit()
+        created += 1
+
+    return schemas.CategoryBulkResult(total_rows=len(items), created=created, errors=errors)
 
 
 def category_has_products(db: Session, category_id: int) -> bool:
@@ -350,7 +389,7 @@ def create_sale(db: Session, sale_in: schemas.SaleCreate, cashier: models.User) 
     setting = get_or_create_store_setting(db)
     today = datetime.date.today()
     count_today = (
-        db.query(models.Sale).filter(cast(models.Sale.created_at, Date) == today).count()
+        db.query(models.Sale).filter(func.date(models.Sale.created_at) == today).count()
     )
     invoice_number = _format_invoice_number(setting.transaction_number_format, count_today + 1, today)
 
@@ -401,13 +440,13 @@ def get_sale(db: Session, sale_id: int):
 def sales_report(db: Session, start: datetime.date, end: datetime.date):
     return (
         db.query(
-            cast(models.Sale.created_at, Date).label("date"),
+            func.date(models.Sale.created_at).label("date"),
             func.sum(models.Sale.total).label("total_sales"),
             func.count(models.Sale.id).label("total_transactions"),
         )
-        .filter(cast(models.Sale.created_at, Date) >= start, cast(models.Sale.created_at, Date) <= end)
-        .group_by(cast(models.Sale.created_at, Date))
-        .order_by(cast(models.Sale.created_at, Date))
+        .filter(func.date(models.Sale.created_at) >= start, func.date(models.Sale.created_at) <= end)
+        .group_by(func.date(models.Sale.created_at))
+        .order_by(func.date(models.Sale.created_at))
         .all()
     )
 
@@ -422,7 +461,7 @@ def top_products_report(db: Session, start: datetime.date, end: datetime.date, l
         )
         .join(models.SaleItem, models.SaleItem.product_id == models.Product.id)
         .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)
-        .filter(cast(models.Sale.created_at, Date) >= start, cast(models.Sale.created_at, Date) <= end)
+        .filter(func.date(models.Sale.created_at) >= start, func.date(models.Sale.created_at) <= end)
         .group_by(models.Product.id)
         .order_by(func.sum(models.SaleItem.subtotal).desc())
         .limit(limit)
@@ -433,25 +472,29 @@ def top_products_report(db: Session, start: datetime.date, end: datetime.date, l
 def profit_report(db: Session, start: datetime.date, end: datetime.date):
     return (
         db.query(
-            cast(models.Sale.created_at, Date).label("date"),
+            func.date(models.Sale.created_at).label("date"),
             func.sum((models.SaleItem.sell_price - models.SaleItem.buy_price) * models.SaleItem.qty).label(
                 "total_profit"
             ),
         )
         .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)
-        .filter(cast(models.Sale.created_at, Date) >= start, cast(models.Sale.created_at, Date) <= end)
-        .group_by(cast(models.Sale.created_at, Date))
-        .order_by(cast(models.Sale.created_at, Date))
+        .filter(func.date(models.Sale.created_at) >= start, func.date(models.Sale.created_at) <= end)
+        .group_by(func.date(models.Sale.created_at))
+        .order_by(func.date(models.Sale.created_at))
         .all()
     )
 
 
 def low_stock_report(db: Session):
-    return (
+    products = (
         db.query(models.Product)
         .filter(models.Product.stock <= models.Product.min_stock, models.Product.is_active.is_(True))
         .all()
     )
+    return [
+        {"product_id": p.id, "name": p.name, "stock": p.stock, "min_stock": p.min_stock}
+        for p in products
+    ]
 
 
 def stock_value_report(db: Session):
@@ -478,7 +521,7 @@ def dashboard_summary(db: Session) -> dict:
     today = datetime.date.today()
     sales_today = (
         db.query(func.coalesce(func.sum(models.Sale.total), 0))
-        .filter(cast(models.Sale.created_at, Date) == today)
+        .filter(func.date(models.Sale.created_at) == today)
         .scalar()
     )
     profit_today = (
@@ -488,11 +531,11 @@ def dashboard_summary(db: Session) -> dict:
             )
         )
         .join(models.Sale, models.Sale.id == models.SaleItem.sale_id)
-        .filter(cast(models.Sale.created_at, Date) == today)
+        .filter(func.date(models.Sale.created_at) == today)
         .scalar()
     )
     transactions_today = (
-        db.query(models.Sale).filter(cast(models.Sale.created_at, Date) == today).count()
+        db.query(models.Sale).filter(func.date(models.Sale.created_at) == today).count()
     )
     product_count = db.query(models.Product).filter(models.Product.is_active.is_(True)).count()
     total_stock = db.query(func.coalesce(func.sum(models.Product.stock), 0)).scalar()

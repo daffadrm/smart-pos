@@ -18,19 +18,27 @@ export function Receipt({
   storeSetting,
   unitName,
   productName,
+  baseUnitName,
 }: {
   sale: Sale;
   storeSetting: StoreSetting | null;
   unitName: (id: number) => string;
   productName: (id: number) => string;
+  baseUnitName?: (productId: number) => string;
 }) {
   return (
     <div>
       <div className="mx-auto max-w-sm rounded-xl border border-gray-200/70 bg-white shadow-sm p-5 text-sm">
         <div className="text-center">
-          <p className="text-base font-semibold text-gray-900">{storeSetting?.store_name ?? "Toko"}</p>
-          {storeSetting?.address && <p className="text-xs text-gray-500">{storeSetting.address}</p>}
-          {storeSetting?.phone && <p className="text-xs text-gray-500">{storeSetting.phone}</p>}
+          <p className="text-base font-semibold text-gray-900">
+            {storeSetting?.store_name ?? "Toko"}
+          </p>
+          {storeSetting?.address && (
+            <p className="text-xs text-gray-500">{storeSetting.address}</p>
+          )}
+          {storeSetting?.phone && (
+            <p className="text-xs text-gray-500">{storeSetting.phone}</p>
+          )}
         </div>
         <div className="my-3 border-t border-dashed border-gray-300" />
         <div className="space-y-0.5 text-xs text-gray-600">
@@ -50,11 +58,20 @@ export function Receipt({
         <div className="my-3 border-t border-dashed border-gray-300" />
         <div className="space-y-1.5">
           {sale.items.map((item) => (
-            <div key={item.id} className="text-xs">
+            <div
+              key={item.id}
+              className="text-xs"
+            >
               <p className="text-gray-900">{productName(item.product_id)}</p>
               <div className="flex justify-between text-gray-500">
                 <span>
-                  {item.qty} {unitName(item.unit_id)} x {formatCurrency(item.sell_price)}
+                  {item.qty} {unitName(item.unit_id)}
+                  {baseUnitName && item.conversion > 1 && (
+                    <>
+                      {" "}
+                      x {item.conversion} {baseUnitName(item.product_id)}
+                    </>
+                  )}
                 </span>
                 <span>{formatCurrency(item.subtotal)}</span>
               </div>
@@ -84,7 +101,9 @@ export function Receipt({
             <span>{formatCurrency(sale.total)}</span>
           </div>
           <div className="flex justify-between text-gray-600">
-            <span>Bayar ({PAYMENT_LABEL[sale.payment_method] ?? sale.payment_method})</span>
+            <span>
+              Bayar ({PAYMENT_LABEL[sale.payment_method] ?? sale.payment_method})
+            </span>
             <span>{formatCurrency(sale.paid_amount)}</span>
           </div>
           <div className="flex justify-between text-gray-600">

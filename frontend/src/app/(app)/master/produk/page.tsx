@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Category, Product, Unit } from "@/lib/types";
+import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -12,8 +13,7 @@ import { Alert } from "@/components/ui/Alert";
 import { ImportProductsModal } from "@/components/ImportProductsModal";
 import { BulkStockModal } from "@/components/BulkStockModal";
 import { Pagination } from "@/components/ui/Pagination";
-
-const PAGE_SIZE = 10;
+import { RowActions } from "@/components/ui/RowActions";
 
 type UnitRow = { unit_id: string; conversion: string; buy_price: string; sell_price: string };
 type FormState = {
@@ -57,6 +57,7 @@ export default function ProdukPage() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
@@ -81,6 +82,9 @@ export default function ProdukPage() {
   function unitName(id: number) {
     return units.find((u) => u.id === id)?.name ?? "-";
   }
+  function secondUnit(product: Product) {
+    return product.units.find((u) => u.unit_id !== product.base_unit_id);
+  }
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -94,9 +98,9 @@ export default function ProdukPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, search, categories]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
     setPage(1);
@@ -259,6 +263,9 @@ export default function ProdukPage() {
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">SKU</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Kategori</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan Dasar</th>
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan 2</th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Beli</th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Jual</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Stok</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Min. Stok</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Status</th>
@@ -268,19 +275,21 @@ export default function ProdukPage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={12} className="px-4 py-6 text-center text-gray-400">
                   Memuat...
                 </td>
               </tr>
             )}
             {!loading && filteredItems.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={12} className="px-4 py-6 text-center text-gray-400">
                   Produk tidak ditemukan
                 </td>
               </tr>
             )}
-            {paginatedItems.map((item) => (
+            {paginatedItems.map((item) => {
+              const secondPu = secondUnit(item);
+              return (
               <tr key={item.id} className={selectedIds.has(item.id) ? "bg-indigo-50/40" : undefined}>
                 <td className="px-4 py-2.5">
                   <input
@@ -294,6 +303,13 @@ export default function ProdukPage() {
                 <td className="px-4 py-2.5 text-gray-600">{item.sku}</td>
                 <td className="px-4 py-2.5 text-gray-600">{categoryName(item.category_id)}</td>
                 <td className="px-4 py-2.5 text-gray-600">{unitName(item.base_unit_id)}</td>
+                <td className="px-4 py-2.5 text-gray-600">{secondPu ? unitName(secondPu.unit_id) : "-"}</td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {secondPu ? formatCurrency(secondPu.buy_price) : "-"}
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {secondPu ? formatCurrency(secondPu.sell_price) : "-"}
+                </td>
                 <td
                   className={`px-4 py-2.5 text-right ${item.stock <= item.min_stock ? "font-semibold text-amber-600" : "text-gray-600"}`}
                 >
@@ -310,23 +326,23 @@ export default function ProdukPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => openEdit(item)} className="mr-3 text-indigo-600 hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => setDeleting(item)} className="text-red-600 hover:underline">
-                    Hapus
-                  </button>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         <Pagination
           page={currentPage}
           totalPages={totalPages}
           totalItems={filteredItems.length}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
         />
       </div>
 

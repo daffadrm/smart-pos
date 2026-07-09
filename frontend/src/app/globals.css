@@ -18,11 +18,35 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Off-screen (not display:none) so it never fights Tailwind's `hidden` utility
+   for priority; only relevant while .printing-target is active (see lib/print.ts). */
+.print-area {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+}
+
 @media print {
   .no-print {
     display: none !important;
   }
   body {
     background: #ffffff;
+  }
+
+  /* Print only the element marked .print-area (e.g. a receipt rendered inside
+     a modal), regardless of what else is on screen at the time. */
+  body.printing-target > * {
+    visibility: hidden;
+  }
+  body.printing-target .print-area {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.printing-target .print-area * {
+    visibility: visible;
   }
 }

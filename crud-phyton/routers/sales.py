@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import crud
@@ -21,6 +22,9 @@ def create_sale(
         raise HTTPException(status_code=404, detail=str(e))
     except (exceptions.InsufficientStockError, exceptions.InsufficientPaymentError, exceptions.ValidationError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Nomor invoice bentrok, silakan coba lagi")
 
 
 @router.get("", response_model=List[schemas.SaleResponse])

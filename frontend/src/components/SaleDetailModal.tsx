@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import type { Sale } from "@/lib/types";
+import type { Sale, StoreSetting } from "@/lib/types";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { Receipt } from "@/components/Receipt";
+import { printOnly } from "@/lib/print";
 
 const PAYMENT_LABEL: Record<string, string> = {
   cash: "Tunai",
@@ -20,11 +21,15 @@ export function SaleDetailModal({
   onClose,
   productName,
   unitName,
+  baseUnitName,
+  storeSetting,
 }: {
   sale: Sale | null;
   onClose: () => void;
   productName: (id: number) => string;
   unitName: (id: number) => string;
+  baseUnitName: (productId: number) => string;
+  storeSetting: StoreSetting | null;
 }) {
   if (!sale) return null;
 
@@ -64,7 +69,14 @@ export function SaleDetailModal({
               <tr key={item.id}>
                 <td className="px-3 py-2 text-gray-900">{productName(item.product_id)}</td>
                 <td className="px-3 py-2 text-right text-gray-600">
-                  {item.qty} {unitName(item.unit_id)}
+                  <p>
+                    {item.qty} {unitName(item.unit_id)}
+                  </p>
+                  {item.conversion > 1 && (
+                    <p className="text-xs text-gray-400">
+                      1 {unitName(item.unit_id)} {item.conversion} {baseUnitName(item.product_id)}
+                    </p>
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right text-gray-600">{formatCurrency(item.sell_price)}</td>
                 <td className="px-3 py-2 text-right text-gray-900">{formatCurrency(item.subtotal)}</td>
@@ -109,9 +121,19 @@ export function SaleDetailModal({
         <Button variant="secondary" onClick={onClose}>
           Tutup
         </Button>
-        <Link href={`/transaksi/riwayat/${sale.id}`}>
-          <Button variant="secondary">Cetak Nota</Button>
-        </Link>
+        <Button variant="secondary" onClick={printOnly}>
+          Cetak Nota
+        </Button>
+      </div>
+
+      <div className="print-area" aria-hidden="true" inert>
+        <Receipt
+          sale={sale}
+          storeSetting={storeSetting}
+          unitName={unitName}
+          productName={productName}
+          baseUnitName={baseUnitName}
+        />
       </div>
     </Modal>
   );

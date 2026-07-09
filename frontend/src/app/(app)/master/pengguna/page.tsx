@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { User } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -9,6 +9,8 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormRow, Input, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Pagination } from "@/components/ui/Pagination";
+import { RowActions } from "@/components/ui/RowActions";
 
 type FormState = {
   username: string;
@@ -34,6 +36,29 @@ export default function PenggunaPage() {
   const [deleting, setDeleting] = useState<User | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.full_name ?? "").toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   function load() {
     setLoading(true);
@@ -119,6 +144,13 @@ export default function PenggunaPage() {
       <PageHeader title="Pengguna" action={<Button onClick={openCreate}>+ Tambah Pengguna</Button>} />
       {error && <Alert message={error} />}
 
+      <Input
+        placeholder="Cari username, email, atau nama..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="mb-3 max-w-sm"
+      />
+
       <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
@@ -139,7 +171,14 @@ export default function PenggunaPage() {
                 </td>
               </tr>
             )}
-            {items.map((item) => (
+            {!loading && filteredItems.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
+                  {items.length === 0 ? "Belum ada pengguna" : "Pengguna tidak ditemukan"}
+                </td>
+              </tr>
+            )}
+            {paginatedItems.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-2.5 font-medium text-gray-900">{item.username}</td>
                 <td className="px-4 py-2.5 text-gray-600">{item.full_name || "-"}</td>
@@ -155,17 +194,23 @@ export default function PenggunaPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right">
-                  <button onClick={() => openEdit(item)} className="mr-3 text-indigo-600 hover:underline">
-                    Edit
-                  </button>
-                  <button onClick={() => setDeleting(item)} className="text-red-600 hover:underline">
-                    Hapus
-                  </button>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleting(item)} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredItems.length}
+          pageSize={pageSize}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Pengguna" : "Tambah Pengguna"}>

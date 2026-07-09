@@ -56,6 +56,22 @@ class CategoryResponse(CategoryCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CategoryBulkCreate(BaseModel):
+    items: List[CategoryCreate]
+
+
+class CategoryBulkRowError(BaseModel):
+    row: int
+    name: Optional[str] = None
+    message: str
+
+
+class CategoryBulkResult(BaseModel):
+    total_rows: int
+    created: int
+    errors: List[CategoryBulkRowError]
+
+
 # ----- Unit -----
 
 class UnitCreate(BaseModel):
