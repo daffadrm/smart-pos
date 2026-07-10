@@ -9,10 +9,26 @@ export type User = {
   is_active: boolean;
 };
 
+export type UserListResponse = {
+  items: User[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
+
 export type Category = {
   id: number;
   name: string;
   description: string | null;
+};
+
+export type CategoryListResponse = {
+  items: Category[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 };
 
 export type CategoryBulkRowError = {
@@ -31,6 +47,14 @@ export type Unit = {
   id: number;
   name: string;
   abbreviation: string | null;
+};
+
+export type UnitListResponse = {
+  items: Unit[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 };
 
 export type ProductUnit = {
@@ -52,6 +76,14 @@ export type Product = {
   stock: number;
   is_active: boolean;
   units: ProductUnit[];
+};
+
+export type ProductListResponse = {
+  items: Product[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 };
 
 export type ProductImportRowError = {

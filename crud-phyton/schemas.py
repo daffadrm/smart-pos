@@ -43,6 +43,14 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserListResponse(BaseModel):
+    items: List[UserResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 # ----- Category -----
 
 class CategoryCreate(BaseModel):
@@ -72,6 +80,14 @@ class CategoryBulkResult(BaseModel):
     errors: List[CategoryBulkRowError]
 
 
+class CategoryListResponse(BaseModel):
+    items: List[CategoryResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 # ----- Unit -----
 
 class UnitCreate(BaseModel):
@@ -83,6 +99,14 @@ class UnitResponse(UnitCreate):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UnitListResponse(BaseModel):
+    items: List[UnitResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 # ----- Product -----
@@ -124,6 +148,14 @@ class ProductResponse(BaseModel):
     units: List[ProductUnitResponse]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductListResponse(BaseModel):
+    items: List[ProductResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class ProductImportRowError(BaseModel):

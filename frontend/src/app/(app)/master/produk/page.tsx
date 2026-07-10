@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Category, Product, Unit } from "@/lib/types";
+import type { Category, CategoryListResponse, Product, ProductListResponse, Unit, UnitListResponse } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { FormRow, Input, Select } from "@/components/ui/Field";
+import { FormRow, Input, NumberInput, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { ImportProductsModal } from "@/components/ImportProductsModal";
 import { BulkStockModal } from "@/components/BulkStockModal";
@@ -56,25 +56,55 @@ export default function ProdukPage() {
   const [importOpen, setImportOpen] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedMap, setSelectedMap] = useState<Map<number, Product>>(new Map());
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
 
-  function load() {
-    setLoading(true);
-    Promise.all([api.get<Product[]>("/products"), api.get<Category[]>("/categories"), api.get<Unit[]>("/units")])
-      .then(([p, c, u]) => {
-        setItems(p);
-        setCategories(c);
-        setUnits(u);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (search === debouncedSearch) return;
+      setLoading(true);
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  useEffect(() => {
+    Promise.all([api.get<CategoryListResponse>("/categories"), api.get<UnitListResponse>("/units")])
+      .then(([c, u]) => {
+        setCategories(c.items);
+        setUnits(u.items);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat data referensi"));
+  }, []);
+
+  function loadProducts() {
+    const params = new URLSearchParams();
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    params.set("page", String(page));
+    params.set("page_size", String(pageSize));
+    api
+      .get<ProductListResponse>(`/products?${params.toString()}`)
+      .then((res) => {
+        setItems(res.items);
+        setTotal(res.total);
+        setTotalPages(res.total_pages);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat produk"))
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, page, pageSize]);
 
   function categoryName(id: number) {
     return categories.find((c) => c.id === id)?.name ?? "-";
@@ -85,41 +115,33 @@ export default function ProdukPage() {
   function secondUnit(product: Product) {
     return product.units.find((u) => u.unit_id !== product.base_unit_id);
   }
+  function baseUnitPrice(product: Product) {
+    return product.units.find((u) => u.unit_id === product.base_unit_id);
+  }
 
-  const filteredItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        categoryName(p.category_id).toLowerCase().includes(q)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, search, categories]);
+  const selectedIds = useMemo(() => new Set(selectedMap.keys()), [selectedMap]);
+  const selectedProducts = useMemo(() => Array.from(selectedMap.values()), [selectedMap]);
+  const allPageSelected = items.length > 0 && items.every((p) => selectedMap.has(p.id));
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
-
-  const allFilteredSelected = filteredItems.length > 0 && filteredItems.every((p) => selectedIds.has(p.id));
-  const selectedProducts = items.filter((p) => selectedIds.has(p.id));
-
-  function toggleSelect(id: number) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  function toggleSelect(item: Product) {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.set(item.id, item);
       return next;
     });
   }
 
-  function toggleSelectAllFiltered() {
-    setSelectedIds(allFilteredSelected ? new Set() : new Set(filteredItems.map((p) => p.id)));
+  function toggleSelectAllPage() {
+    setSelectedMap((prev) => {
+      const next = new Map(prev);
+      if (allPageSelected) {
+        items.forEach((p) => next.delete(p.id));
+      } else {
+        items.forEach((p) => next.set(p.id, p));
+      }
+      return next;
+    });
   }
 
   function openCreate() {
@@ -189,7 +211,7 @@ export default function ProdukPage() {
         await api.post("/products", payload);
       }
       setModalOpen(false);
-      load();
+      loadProducts();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Gagal menyimpan produk");
     } finally {
@@ -204,7 +226,7 @@ export default function ProdukPage() {
     try {
       await api.del(`/products/${deleting.id}`);
       setDeleting(null);
-      load();
+      loadProducts();
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : "Gagal menghapus produk");
     } finally {
@@ -228,7 +250,7 @@ export default function ProdukPage() {
       {error && <Alert message={error} />}
 
       <Input
-        placeholder="Cari nama, SKU, atau kategori..."
+        placeholder="Cari nama, SKU, atau barcode..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="mb-3 max-w-sm"
@@ -238,7 +260,7 @@ export default function ProdukPage() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2.5">
           <p className="text-sm text-indigo-700">{selectedIds.size} produk dipilih</p>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSelectedIds(new Set())}>
+            <Button variant="secondary" onClick={() => setSelectedMap(new Map())}>
               Batal Pilih
             </Button>
             <Button onClick={() => setBulkStockOpen(true)}>Tambah Stok untuk Produk Terpilih</Button>
@@ -253,19 +275,21 @@ export default function ProdukPage() {
               <th className="w-10 px-4 py-2.5">
                 <input
                   type="checkbox"
-                  checked={allFilteredSelected}
-                  onChange={toggleSelectAllFiltered}
-                  aria-label={`Pilih semua ${filteredItems.length} produk`}
-                  title={`Pilih semua ${filteredItems.length} produk`}
+                  checked={allPageSelected}
+                  onChange={toggleSelectAllPage}
+                  aria-label={`Pilih semua ${items.length} produk di halaman ini`}
+                  title={`Pilih semua ${items.length} produk di halaman ini`}
                 />
               </th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Nama</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">SKU</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Kategori</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan Dasar</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan 2</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Beli</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Jual</th>
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan 2</th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Beli 2</th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Jual 2</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Stok</th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Min. Stok</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Status</th>
@@ -275,19 +299,20 @@ export default function ProdukPage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={12} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={14} className="px-4 py-6 text-center text-gray-400">
                   Memuat...
                 </td>
               </tr>
             )}
-            {!loading && filteredItems.length === 0 && (
+            {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-4 py-6 text-center text-gray-400">
+                <td colSpan={14} className="px-4 py-6 text-center text-gray-400">
                   Produk tidak ditemukan
                 </td>
               </tr>
             )}
-            {paginatedItems.map((item) => {
+            {!loading && items.map((item) => {
+              const basePu = baseUnitPrice(item);
               const secondPu = secondUnit(item);
               return (
               <tr key={item.id} className={selectedIds.has(item.id) ? "bg-indigo-50/40" : undefined}>
@@ -295,7 +320,7 @@ export default function ProdukPage() {
                   <input
                     type="checkbox"
                     checked={selectedIds.has(item.id)}
-                    onChange={() => toggleSelect(item.id)}
+                    onChange={() => toggleSelect(item)}
                     aria-label={`Pilih ${item.name}`}
                   />
                 </td>
@@ -303,6 +328,12 @@ export default function ProdukPage() {
                 <td className="px-4 py-2.5 text-gray-600">{item.sku}</td>
                 <td className="px-4 py-2.5 text-gray-600">{categoryName(item.category_id)}</td>
                 <td className="px-4 py-2.5 text-gray-600">{unitName(item.base_unit_id)}</td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {basePu ? formatCurrency(basePu.buy_price) : "-"}
+                </td>
+                <td className="px-4 py-2.5 text-right text-gray-600">
+                  {basePu ? formatCurrency(basePu.sell_price) : "-"}
+                </td>
                 <td className="px-4 py-2.5 text-gray-600">{secondPu ? unitName(secondPu.unit_id) : "-"}</td>
                 <td className="px-4 py-2.5 text-right text-gray-600">
                   {secondPu ? formatCurrency(secondPu.buy_price) : "-"}
@@ -340,12 +371,16 @@ export default function ProdukPage() {
           </tbody>
         </table>
         <Pagination
-          page={currentPage}
+          page={page}
           totalPages={totalPages}
-          totalItems={filteredItems.length}
+          totalItems={total}
           pageSize={pageSize}
-          onChange={setPage}
+          onChange={(p) => {
+            setLoading(true);
+            setPage(p);
+          }}
           onPageSizeChange={(size) => {
+            setLoading(true);
             setPageSize(size);
             setPage(1);
           }}
@@ -396,11 +431,9 @@ export default function ProdukPage() {
               </Select>
             </FormRow>
             <FormRow label="Minimum Stok" required>
-              <Input
-                type="number"
-                min={0}
+              <NumberInput
                 value={form.min_stock}
-                onChange={(e) => setForm({ ...form, min_stock: e.target.value })}
+                onChange={(raw) => setForm({ ...form, min_stock: raw })}
                 required
               />
             </FormRow>
@@ -444,31 +477,25 @@ export default function ProdukPage() {
                       </option>
                     ))}
                   </Select>
-                  <Input
+                  <NumberInput
                     className="col-span-2"
-                    type="number"
-                    min={1}
                     placeholder="Konversi"
                     value={row.conversion}
-                    onChange={(e) => updateUnitRow(i, { conversion: e.target.value })}
+                    onChange={(raw) => updateUnitRow(i, { conversion: raw })}
                     required
                   />
-                  <Input
+                  <NumberInput
                     className="col-span-3"
-                    type="number"
-                    min={0}
                     placeholder="Harga beli"
                     value={row.buy_price}
-                    onChange={(e) => updateUnitRow(i, { buy_price: e.target.value })}
+                    onChange={(raw) => updateUnitRow(i, { buy_price: raw })}
                     required
                   />
-                  <Input
+                  <NumberInput
                     className="col-span-3"
-                    type="number"
-                    min={0}
                     placeholder="Harga jual"
                     value={row.sell_price}
-                    onChange={(e) => updateUnitRow(i, { sell_price: e.target.value })}
+                    onChange={(raw) => updateUnitRow(i, { sell_price: raw })}
                     required
                   />
                   <button
@@ -509,7 +536,7 @@ export default function ProdukPage() {
         loading={deleteLoading}
       />
 
-      <ImportProductsModal open={importOpen} onClose={() => setImportOpen(false)} onImported={load} />
+      <ImportProductsModal open={importOpen} onClose={() => setImportOpen(false)} onImported={loadProducts} />
 
       <BulkStockModal
         open={bulkStockOpen}
@@ -517,8 +544,8 @@ export default function ProdukPage() {
         products={selectedProducts}
         units={units}
         onDone={() => {
-          load();
-          setSelectedIds(new Set());
+          loadProducts();
+          setSelectedMap(new Map());
         }}
       />
     </div>

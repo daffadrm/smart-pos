@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -20,9 +18,21 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username atau email sudah digunakan")
 
 
-@router.get("", response_model=List[schemas.UserResponse])
-def read_users(db: Session = Depends(get_db)):
-    return crud.get_users(db)
+@router.get("", response_model=schemas.UserListResponse)
+def read_users(
+    search: str | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+    db: Session = Depends(get_db),
+):
+    items, total, total_pages = crud.get_users(db, search=search, page=page, page_size=page_size)
+    return schemas.UserListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size if page_size is not None else total,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)

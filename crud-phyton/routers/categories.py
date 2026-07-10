@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -39,9 +37,22 @@ def bulk_create_categories(data: schemas.CategoryBulkCreate, db: Session = Depen
     return crud.bulk_create_categories(db, data.items)
 
 
-@router.get("", response_model=List[schemas.CategoryResponse])
-def read_categories(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return crud.get_categories(db)
+@router.get("", response_model=schemas.CategoryListResponse)
+def read_categories(
+    search: str | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    items, total, total_pages = crud.get_categories(db, search=search, page=page, page_size=page_size)
+    return schemas.CategoryListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size if page_size is not None else total,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/{category_id}", response_model=schemas.CategoryResponse)

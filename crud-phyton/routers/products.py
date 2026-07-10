@@ -1,5 +1,4 @@
 import io
-from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
@@ -40,9 +39,25 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail=product_imports.integrity_error_message(e))
 
 
-@router.get("", response_model=List[schemas.ProductResponse])
-def read_products(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return crud.get_products(db)
+@router.get("", response_model=schemas.ProductListResponse)
+def read_products(
+    search: str | None = None,
+    is_active: bool | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    items, total, total_pages = crud.get_products(
+        db, search=search, is_active=is_active, page=page, page_size=page_size
+    )
+    return schemas.ProductListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size if page_size is not None else total,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/import/template", dependencies=[Depends(require_roles("admin"))])

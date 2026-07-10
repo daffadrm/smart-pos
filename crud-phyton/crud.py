@@ -1,13 +1,23 @@
 import datetime
 import re
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 import exceptions
 import models
 import schemas
 from security import hash_password
+
+
+def _paginate(query, page: int, page_size: int | None):
+    """Applies offset/limit (when page_size is given) and returns (items, total, total_pages)."""
+    total = query.count()
+    total_pages = 1
+    if page_size is not None:
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        total_pages = max(1, -(-total // page_size))
+    return query.all(), total, total_pages
 
 
 # ----- User -----
@@ -21,8 +31,19 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     return db_user
 
 
-def get_users(db: Session):
-    return db.query(models.User).all()
+def get_users(db: Session, search: str | None = None, page: int = 1, page_size: int | None = None):
+    query = db.query(models.User)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                models.User.username.ilike(like),
+                models.User.email.ilike(like),
+                models.User.full_name.ilike(like),
+            )
+        )
+    query = query.order_by(models.User.username)
+    return _paginate(query, page, page_size)
 
 
 def get_user(db: Session, user_id: int):
@@ -72,8 +93,13 @@ def create_category(db: Session, category: schemas.CategoryCreate):
     return db_category
 
 
-def get_categories(db: Session):
-    return db.query(models.Category).all()
+def get_categories(db: Session, search: str | None = None, page: int = 1, page_size: int | None = None):
+    query = db.query(models.Category)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(or_(models.Category.name.ilike(like), models.Category.description.ilike(like)))
+    query = query.order_by(models.Category.name)
+    return _paginate(query, page, page_size)
 
 
 def get_category(db: Session, category_id: int):
@@ -142,8 +168,13 @@ def create_unit(db: Session, unit: schemas.UnitCreate):
     return db_unit
 
 
-def get_units(db: Session):
-    return db.query(models.Unit).all()
+def get_units(db: Session, search: str | None = None, page: int = 1, page_size: int | None = None):
+    query = db.query(models.Unit)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(or_(models.Unit.name.ilike(like), models.Unit.abbreviation.ilike(like)))
+    query = query.order_by(models.Unit.name)
+    return _paginate(query, page, page_size)
 
 
 def get_unit(db: Session, unit_id: int):
@@ -228,8 +259,27 @@ def create_product(db: Session, data: schemas.ProductCreate) -> models.Product:
     return product
 
 
-def get_products(db: Session):
-    return db.query(models.Product).all()
+def get_products(
+    db: Session,
+    search: str | None = None,
+    is_active: bool | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+):
+    query = db.query(models.Product)
+    if search:
+        like = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                models.Product.name.ilike(like),
+                models.Product.sku.ilike(like),
+                models.Product.barcode.ilike(like),
+            )
+        )
+    if is_active is not None:
+        query = query.filter(models.Product.is_active.is_(is_active))
+    query = query.order_by(models.Product.name)
+    return _paginate(query, page, page_size)
 
 
 def get_product(db: Session, product_id: int):
@@ -307,10 +357,12 @@ def update_store_setting(db: Session, data: schemas.StoreSettingUpdate) -> model
 
 # ----- Stock movement -----
 
-def get_stock_movements(db: Session, product_id: int | None = None):
+def get_stock_movements(db: Session, product_id: int | None = None, date: str | None = None):
     query = db.query(models.StockMovement)
     if product_id is not None:
         query = query.filter(models.StockMovement.product_id == product_id)
+    if date:
+        query = query.filter(func.date(models.StockMovement.created_at) == date)
     return query.order_by(models.StockMovement.created_at.desc()).all()
 
 

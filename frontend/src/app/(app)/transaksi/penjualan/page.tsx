@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { PaymentMethod, Product, Sale, StoreSetting, Unit } from "@/lib/types";
+import type { PaymentMethod, Product, ProductListResponse, Sale, StoreSetting, Unit, UnitListResponse } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
-import { Input, Select } from "@/components/ui/Field";
+import { Input, NumberInput, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Receipt } from "@/components/Receipt";
@@ -21,14 +21,20 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "Lainnya" },
 ];
 
+const PRODUCT_SEARCH_LIMIT = 20;
+
 export default function PenjualanPage() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [storeSetting, setStoreSetting] = useState<StoreSetting | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [productCache, setProductCache] = useState<Map<number, Product>>(new Map());
+
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const [discount, setDiscount] = useState("0");
@@ -41,42 +47,61 @@ export default function PenjualanPage() {
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
 
   function load() {
-    setLoading(true);
-    Promise.all([
-      api.get<Product[]>("/products"),
-      api.get<Unit[]>("/units"),
-      api.get<StoreSetting>("/store-settings"),
-    ])
-      .then(([p, u, s]) => {
-        setProducts(p.filter((prod) => prod.is_active));
-        setUnits(u);
+    Promise.all([api.get<UnitListResponse>("/units"), api.get<StoreSetting>("/store-settings")])
+      .then(([u, s]) => {
+        setUnits(u.items);
         setStoreSetting(s);
       })
-      .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Gagal memuat data produk"))
-      .finally(() => setLoading(false));
+      .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Gagal memuat data produk"));
   }
 
   useEffect(load, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setSearching(!!search.trim());
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    const q = debouncedSearch.trim();
+    if (!q) return;
+    const params = new URLSearchParams({
+      search: q,
+      is_active: "true",
+      page: "1",
+      page_size: String(PRODUCT_SEARCH_LIMIT),
+    });
+    api
+      .get<ProductListResponse>(`/products?${params.toString()}`)
+      .then((res) => {
+        setSearchResults(res.items);
+        setSearchTotal(res.total);
+        setProductCache((prev) => {
+          const next = new Map(prev);
+          res.items.forEach((p) => next.set(p.id, p));
+          return next;
+        });
+      })
+      .catch((err) => setLoadError(err instanceof ApiError ? err.message : "Gagal mencari produk"))
+      .finally(() => setSearching(false));
+  }, [debouncedSearch]);
 
   function unitName(id: number) {
     return units.find((u) => u.id === id)?.abbreviation || units.find((u) => u.id === id)?.name || "-";
   }
   function productName(id: number) {
-    return products.find((p) => p.id === id)?.name ?? `Produk #${id}`;
+    return productCache.get(id)?.name ?? `Produk #${id}`;
   }
   function baseUnitName(productId: number) {
-    const product = products.find((p) => p.id === productId);
+    const product = productCache.get(productId);
     return product ? unitName(product.base_unit_id) : "-";
   }
   function findProductUnit(productId: number, unitId: number) {
-    return products.find((p) => p.id === productId)?.units.find((u) => u.unit_id === unitId);
+    return productCache.get(productId)?.units.find((u) => u.unit_id === unitId);
   }
-
-  const filteredProducts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return [];
-    return products.filter((p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q));
-  }, [products, search]);
 
   function addToCart(product: Product) {
     const unitId = product.base_unit_id;
@@ -163,42 +188,50 @@ export default function PenjualanPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <Input
-            placeholder="Cari produk (nama atau SKU)..."
+            placeholder="Cari produk (nama, SKU, atau barcode)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
             className="mb-3"
           />
           <div className="max-h-[520px] overflow-y-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
-            {loading && <p className="p-4 text-sm text-gray-400">Memuat produk...</p>}
-            {!loading && search.trim() === "" && (
-              <p className="p-4 text-sm text-gray-400">Ketik nama atau SKU produk untuk mencari...</p>
+            {searching && <p className="p-4 text-sm text-gray-400">Mencari...</p>}
+            {!searching && search.trim() === "" && (
+              <p className="p-4 text-sm text-gray-400">Ketik nama, SKU, atau barcode produk untuk mencari...</p>
             )}
-            {!loading && search.trim() !== "" && filteredProducts.length === 0 && (
+            {!searching && search.trim() !== "" && searchResults.length === 0 && (
               <p className="p-4 text-sm text-gray-400">Produk tidak ditemukan</p>
             )}
-            <ul className="divide-y divide-gray-100">
-              {filteredProducts.map((p) => {
-                const pu = p.units.find((u) => u.unit_id === p.base_unit_id);
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => addToCart(p)}
-                      disabled={p.stock <= 0}
-                      className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {p.sku} &middot; Stok {p.stock} {unitName(p.base_unit_id)}
-                        </p>
-                      </div>
-                      <p className="text-sm font-medium text-gray-700">{pu ? formatCurrency(pu.sell_price) : "-"}</p>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            {search.trim() !== "" && (
+              <ul className="divide-y divide-gray-100">
+                {searchResults.map((p) => {
+                  const pu = p.units.find((u) => u.unit_id === p.base_unit_id);
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => addToCart(p)}
+                        disabled={p.stock <= 0}
+                        className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{p.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {p.sku} &middot; Stok {p.stock} {unitName(p.base_unit_id)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-medium text-gray-700">{pu ? formatCurrency(pu.sell_price) : "-"}</p>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {search.trim() !== "" && !searching && searchTotal > searchResults.length && (
+              <p className="border-t border-gray-100 p-3 text-center text-xs text-gray-400">
+                Menampilkan {searchResults.length} dari {searchTotal} hasil, perkecil kata kunci pencarian untuk hasil
+                lebih spesifik.
+              </p>
+            )}
           </div>
         </div>
 
@@ -208,7 +241,7 @@ export default function PenjualanPage() {
             {cart.length === 0 && <p className="py-6 text-center text-sm text-gray-400">Belum ada item</p>}
             <div className="space-y-3">
               {cart.map((line, i) => {
-                const product = products.find((p) => p.id === line.product_id);
+                const product = productCache.get(line.product_id);
                 const pu = findProductUnit(line.product_id, line.unit_id);
                 return (
                   <div key={i} className="rounded-md border border-gray-100 p-2.5">
@@ -230,11 +263,9 @@ export default function PenjualanPage() {
                           </option>
                         ))}
                       </Select>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={line.qty}
-                        onChange={(e) => updateLine(i, { qty: Math.max(1, Number(e.target.value)) })}
+                      <NumberInput
+                        value={String(line.qty)}
+                        onChange={(raw) => updateLine(i, { qty: Math.max(1, Number(raw) || 0) })}
                         className="w-20 py-1 text-xs"
                       />
                       <p className="ml-auto text-sm font-medium text-gray-700">
@@ -258,21 +289,17 @@ export default function PenjualanPage() {
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-gray-500">Diskon</span>
-                <Input
-                  type="number"
-                  min={0}
+                <NumberInput
                   value={discount}
-                  onChange={(e) => setDiscount(e.target.value)}
+                  onChange={setDiscount}
                   className="w-32 py-1 text-right text-xs"
                 />
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-gray-500">Pajak</span>
-                <Input
-                  type="number"
-                  min={0}
+                <NumberInput
                   value={tax}
-                  onChange={(e) => setTax(e.target.value)}
+                  onChange={setTax}
                   className="w-32 py-1 text-right text-xs"
                 />
               </div>
@@ -296,11 +323,9 @@ export default function PenjualanPage() {
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-gray-500">Bayar</span>
-                <Input
-                  type="number"
-                  min={0}
+                <NumberInput
                   value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
+                  onChange={setPaidAmount}
                   className="w-32 py-1 text-right text-xs"
                 />
               </div>

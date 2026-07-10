@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import type { Product, Sale, StoreSetting, Unit } from "@/lib/types";
+import type { Product, ProductListResponse, Sale, StoreSetting, Unit, UnitListResponse } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
@@ -22,14 +22,14 @@ export default function RiwayatDetailPage() {
   useEffect(() => {
     Promise.all([
       api.get<Sale>(`/sales/${params.id}`),
-      api.get<Product[]>("/products"),
-      api.get<Unit[]>("/units"),
+      api.get<ProductListResponse>("/products"),
+      api.get<UnitListResponse>("/units"),
       api.get<StoreSetting>("/store-settings"),
     ])
       .then(([s, p, u, ss]) => {
         setSale(s);
-        setProducts(p);
-        setUnits(u);
+        setProducts(p.items);
+        setUnits(u.items);
         setStoreSetting(ss);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat transaksi"))

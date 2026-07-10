@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
@@ -15,6 +15,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const msg = sessionStorage.getItem("auth_message");
+    if (!msg) return;
+    sessionStorage.removeItem("auth_message");
+    setTimeout(() => setError(msg), 0);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,8 +38,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200/70 bg-white shadow-sm p-8 shadow-sm">
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-gray-50 bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/login-bg.webp')" }}
+    >
+      <div className="absolute inset-0 bg-black/55" />
+      <div className="relative w-full max-w-sm rounded-xl border border-gray-200/70 bg-white shadow-lg p-8">
         <h1 className="text-xl font-semibold text-gray-900">BSI Plastik</h1>
         <p className="mt-1 text-sm text-gray-500">Masuk untuk melanjutkan</p>
 

@@ -2,11 +2,11 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Product, StockMovement, StockMovementType, Unit } from "@/lib/types";
-import { formatDateTime } from "@/lib/format";
+import type { Product, ProductListResponse, StockMovement, StockMovementType, Unit, UnitListResponse } from "@/lib/types";
+import { formatDateTime, todayISO } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { FormRow, Input, Select, Textarea } from "@/components/ui/Field";
+import { FormRow, Input, NumberInput, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 
 const TYPE_LABEL: Record<StockMovementType, string> = {
@@ -19,8 +19,10 @@ export default function TambahStokPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [movementsLoading, setMovementsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [dateFilter, setDateFilter] = useState(todayISO());
 
   const [productId, setProductId] = useState("");
   const [unitId, setUnitId] = useState("");
@@ -31,23 +33,30 @@ export default function TambahStokPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  function load() {
-    setLoading(true);
-    Promise.all([
-      api.get<Product[]>("/products"),
-      api.get<Unit[]>("/units"),
-      api.get<StockMovement[]>("/stock-movements"),
-    ])
-      .then(([p, u, m]) => {
-        setProducts(p);
-        setUnits(u);
-        setMovements(m);
+  function loadReferenceData() {
+    Promise.all([api.get<ProductListResponse>("/products"), api.get<UnitListResponse>("/units")])
+      .then(([p, u]) => {
+        setProducts(p.items);
+        setUnits(u.items);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat data"))
-      .finally(() => setLoading(false));
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat data"));
   }
 
-  useEffect(load, []);
+  function loadMovements(date: string) {
+    const params = new URLSearchParams();
+    if (date) params.set("date", date);
+    api
+      .get<StockMovement[]>(`/stock-movements?${params.toString()}`)
+      .then(setMovements)
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat riwayat stok"))
+      .finally(() => setMovementsLoading(false));
+  }
+
+  useEffect(() => {
+    loadReferenceData();
+    loadMovements(dateFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedProduct = products.find((p) => String(p.id) === productId);
 
@@ -74,7 +83,8 @@ export default function TambahStokPage() {
       setSuccess("Pergerakan stok berhasil dicatat.");
       setQtyInput("");
       setNote("");
-      load();
+      loadReferenceData();
+      loadMovements(dateFilter);
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Gagal mencatat pergerakan stok");
     } finally {
@@ -135,7 +145,7 @@ export default function TambahStokPage() {
           </FormRow>
 
           <FormRow label={type === "adjustment" ? "Jumlah Stok Akhir" : "Jumlah"} required>
-            <Input type="number" min={0} value={qtyInput} onChange={(e) => setQtyInput(e.target.value)} required />
+            <NumberInput value={qtyInput} onChange={setQtyInput} required />
           </FormRow>
 
           <FormRow label="Catatan">
@@ -148,21 +158,33 @@ export default function TambahStokPage() {
         </form>
 
         <div className="rounded-xl border border-gray-200/70 bg-white shadow-sm">
-          <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Riwayat Terbaru</p>
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+            <p className="text-sm font-semibold text-gray-900">Riwayat Terbaru</p>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => {
+                setDateFilter(e.target.value);
+                setMovementsLoading(true);
+                loadMovements(e.target.value);
+              }}
+              className="w-auto py-1 text-xs"
+            />
+          </div>
           <div className="max-h-[440px] overflow-y-auto">
             <table className="min-w-full divide-y divide-gray-100 text-sm">
               <tbody className="divide-y divide-gray-100">
-                {loading && (
+                {movementsLoading && (
                   <tr>
                     <td className="px-4 py-4 text-center text-gray-400">Memuat...</td>
                   </tr>
                 )}
-                {!loading && movements.length === 0 && (
+                {!movementsLoading && movements.length === 0 && (
                   <tr>
-                    <td className="px-4 py-4 text-center text-gray-400">Belum ada pergerakan stok</td>
+                    <td className="px-4 py-4 text-center text-gray-400">Belum ada pergerakan stok pada tanggal ini</td>
                   </tr>
                 )}
-                {movements.map((m) => (
+                {!movementsLoading && movements.map((m) => (
                   <tr key={m.id}>
                     <td className="px-4 py-2.5">
                       <p className="font-medium text-gray-900">{productName(m.product_id)}</p>

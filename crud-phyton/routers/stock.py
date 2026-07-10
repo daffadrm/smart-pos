@@ -28,5 +28,7 @@ def create_stock_movement(
 
 
 @router.get("", response_model=List[schemas.StockMovementResponse])
-def read_stock_movements(product_id: Optional[int] = None, db: Session = Depends(get_db)):
-    return crud.get_stock_movements(db, product_id)
+def read_stock_movements(
+    product_id: Optional[int] = None, date: Optional[str] = None, db: Session = Depends(get_db)
+):
+    return crud.get_stock_movements(db, product_id, date)

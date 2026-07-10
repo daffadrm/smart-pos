@@ -13,6 +13,14 @@ function getToken(): string | null {
   return localStorage.getItem("token");
 }
 
+function handleUnauthorized() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  if (window.location.pathname === "/login") return;
+  sessionStorage.setItem("auth_message", "Sesi Anda telah berakhir, silakan login kembali.");
+  window.location.href = "/login";
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -26,6 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
+    if (res.status === 401) handleUnauthorized();
     let detail = res.statusText;
     try {
       const data = await res.json();
@@ -55,7 +64,10 @@ export async function downloadFile(path: string, filename: string) {
   const res = await fetch(`${API_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, "Gagal mengunduh file");
+  if (!res.ok) {
+    if (res.status === 401) handleUnauthorized();
+    throw new ApiError(res.status, "Gagal mengunduh file");
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

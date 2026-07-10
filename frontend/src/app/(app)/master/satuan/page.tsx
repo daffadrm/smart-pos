@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { Unit } from "@/lib/types";
+import type { Unit, UnitListResponse } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -31,35 +31,43 @@ export default function SatuanPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const filteredItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (u) => u.name.toLowerCase().includes(q) || (u.abbreviation ?? "").toLowerCase().includes(q)
-    );
-  }, [items, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    setPage(1);
+    const t = setTimeout(() => {
+      if (search === debouncedSearch) return;
+      setLoading(true);
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   function load() {
-    setLoading(true);
+    const params = new URLSearchParams();
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    params.set("page", String(page));
+    params.set("page_size", String(pageSize));
     api
-      .get<Unit[]>("/units")
-      .then(setItems)
+      .get<UnitListResponse>(`/units?${params.toString()}`)
+      .then((res) => {
+        setItems(res.items);
+        setTotal(res.total);
+        setTotalPages(res.total_pages);
+      })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat satuan"))
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, page, pageSize]);
 
   function openCreate() {
     setEditing(null);
@@ -139,14 +147,14 @@ export default function SatuanPage() {
                 </td>
               </tr>
             )}
-            {!loading && filteredItems.length === 0 && (
+            {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                  {items.length === 0 ? "Belum ada satuan" : "Satuan tidak ditemukan"}
+                  {search.trim() === "" ? "Belum ada satuan" : "Satuan tidak ditemukan"}
                 </td>
               </tr>
             )}
-            {paginatedItems.map((item) => (
+            {!loading && items.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-2.5 font-medium text-gray-900">{item.name}</td>
                 <td className="px-4 py-2.5 text-gray-600">{item.abbreviation || "-"}</td>
@@ -164,12 +172,16 @@ export default function SatuanPage() {
           </tbody>
         </table>
         <Pagination
-          page={currentPage}
+          page={page}
           totalPages={totalPages}
-          totalItems={filteredItems.length}
+          totalItems={total}
           pageSize={pageSize}
-          onChange={setPage}
+          onChange={(p) => {
+            setLoading(true);
+            setPage(p);
+          }}
           onPageSizeChange={(size) => {
+            setLoading(true);
             setPageSize(size);
             setPage(1);
           }}

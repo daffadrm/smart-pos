@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -25,9 +23,22 @@ def create_unit(unit: schemas.UnitCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Nama satuan sudah digunakan")
 
 
-@router.get("", response_model=List[schemas.UnitResponse])
-def read_units(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return crud.get_units(db)
+@router.get("", response_model=schemas.UnitListResponse)
+def read_units(
+    search: str | None = None,
+    page: int = 1,
+    page_size: int | None = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    items, total, total_pages = crud.get_units(db, search=search, page=page, page_size=page_size)
+    return schemas.UnitListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size if page_size is not None else total,
+        total_pages=total_pages,
+    )
 
 
 @router.get("/{unit_id}", response_model=schemas.UnitResponse)

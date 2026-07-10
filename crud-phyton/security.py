@@ -6,7 +6,7 @@ import jwt
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 8 * 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 24 * 60
 
 
 def hash_password(password: str) -> str:

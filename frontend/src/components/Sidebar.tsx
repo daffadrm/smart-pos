@@ -80,8 +80,14 @@ function NavLink({
 
   function handleMouseEnter() {
     if (!collapsed || !linkRef.current) return;
+    if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) return;
     const rect = linkRef.current.getBoundingClientRect();
     setTooltipPos({ top: rect.top + rect.height / 2, left: rect.right + 8 });
+  }
+
+  function handleClick() {
+    setTooltipPos(null);
+    onNavigate();
   }
 
   return (
@@ -89,7 +95,7 @@ function NavLink({
       <Link
         ref={linkRef}
         href={item.href}
-        onClick={onNavigate}
+        onClick={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setTooltipPos(null)}
         className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${

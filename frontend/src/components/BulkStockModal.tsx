@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Product, StockMovementType, Unit } from "@/lib/types";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { FormRow, Input, Select } from "@/components/ui/Field";
+import { FormRow, Input, NumberInput, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
 
 type RowState = { unit_id: string; qty: string };
@@ -114,12 +114,10 @@ export function BulkStockModal({
         {!results && (
           <FormRow label="Jumlah Massal">
             <div className="flex gap-2">
-              <Input
-                type="number"
-                min={0}
+              <NumberInput
                 placeholder="Contoh: 100"
                 value={bulkQty}
-                onChange={(e) => setBulkQty(e.target.value)}
+                onChange={setBulkQty}
                 className="max-w-[160px]"
               />
               <Button type="button" variant="secondary" onClick={applyBulkQty} disabled={!bulkQty}>
@@ -176,11 +174,9 @@ export function BulkStockModal({
                       </Select>
                     </td>
                     <td className="px-3 py-2">
-                      <Input
-                        type="number"
-                        min={0}
+                      <NumberInput
                         value={row.qty}
-                        onChange={(e) => updateRow(p, { qty: e.target.value })}
+                        onChange={(raw) => updateRow(p, { qty: raw })}
                         className="w-24 py-1 text-xs"
                         disabled={!!results}
                       />
