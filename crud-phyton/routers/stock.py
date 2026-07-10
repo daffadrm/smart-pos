@@ -9,7 +9,7 @@ import schemas
 from deps import get_db, require_roles
 
 router = APIRouter(
-    prefix="/stock-movements", tags=["stock"], dependencies=[Depends(require_roles("admin"))]
+    prefix="/stock-movements", tags=["stock"], dependencies=[Depends(require_roles("admin", "supervisor"))]
 )
 
 
@@ -17,7 +17,7 @@ router = APIRouter(
 def create_stock_movement(
     data: schemas.StockMovementCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles("admin")),
+    current_user=Depends(require_roles("admin", "supervisor")),
 ):
     try:
         return crud.create_stock_movement(db, data, current_user)

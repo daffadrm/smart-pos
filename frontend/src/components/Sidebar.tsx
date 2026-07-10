@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import type { Role } from "@/lib/types";
 
-type NavItem = { label: string; href: string; icon: LucideIcon };
+type NavItem = { label: string; href: string; icon: LucideIcon; roles?: Role[] };
 type NavGroup = { label: string; items: NavItem[]; adminOnly?: boolean };
 
 const NAV: (NavItem | NavGroup)[] = [
@@ -36,8 +36,8 @@ const NAV: (NavItem | NavGroup)[] = [
       { label: "Produk", href: "/master/produk", icon: Package },
       { label: "Kategori", href: "/master/kategori", icon: Tags },
       { label: "Satuan", href: "/master/satuan", icon: Ruler },
-      { label: "Pengguna", href: "/master/pengguna", icon: Users },
-      { label: "Pengaturan Toko", href: "/master/pengaturan-toko", icon: Store },
+      { label: "Pengguna", href: "/master/pengguna", icon: Users, roles: ["admin"] },
+      { label: "Pengaturan Toko", href: "/master/pengaturan-toko", icon: Store, roles: ["admin"] },
     ],
   },
   {
@@ -164,7 +164,7 @@ export function Sidebar({
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           {NAV.map((item) => {
             if (!isGroup(item)) {
-              if (item.href === "/dashboard" && role !== "admin") return null;
+              if (item.href === "/dashboard" && role === "kasir") return null;
               return (
                 <NavLink
                   key={item.href}
@@ -176,12 +176,13 @@ export function Sidebar({
               );
             }
 
-            if (item.adminOnly && role !== "admin") return null;
+            if (item.adminOnly && role === "kasir") return null;
 
-            const items =
-              item.label === "Transaksi" && role !== "admin"
+            const items = (
+              item.label === "Transaksi" && role === "kasir"
                 ? item.items.filter((i) => i.href !== "/transaksi/tambah-stok")
-                : item.items;
+                : item.items
+            ).filter((i) => !i.roles || i.roles.includes(role));
 
             return (
               <div key={item.label}>

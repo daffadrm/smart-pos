@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
-import type { User, UserListResponse } from "@/lib/types";
+import type { Role, User, UserListResponse } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -17,7 +17,7 @@ type FormState = {
   email: string;
   password: string;
   full_name: string;
-  role: "admin" | "kasir";
+  role: Role;
   is_active: boolean;
 };
 const emptyForm: FormState = { username: "", email: "", password: "", full_name: "", role: "kasir", is_active: true };
@@ -249,8 +249,9 @@ export default function PenggunaPage() {
             />
           </FormRow>
           <FormRow label="Role" required>
-            <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "admin" | "kasir" })}>
+            <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
               <option value="kasir">Kasir</option>
+              <option value="supervisor">Supervisor</option>
               <option value="admin">Admin</option>
             </Select>
           </FormRow>

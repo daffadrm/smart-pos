@@ -8,7 +8,7 @@ import crud
 import schemas
 from deps import get_db, require_roles
 
-router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(require_roles("admin"))])
+router = APIRouter(prefix="/reports", tags=["reports"], dependencies=[Depends(require_roles("admin", "supervisor"))])
 
 
 def _resolve_range(start: Optional[datetime.date], end: Optional[datetime.date]):

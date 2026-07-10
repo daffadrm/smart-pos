@@ -26,7 +26,7 @@ def _validate_references(db: Session, data: schemas.ProductCreate) -> None:
     "",
     response_model=schemas.ProductResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
     _validate_references(db, product)
@@ -60,7 +60,7 @@ def read_products(
     )
 
 
-@router.get("/import/template", dependencies=[Depends(require_roles("admin"))])
+@router.get("/import/template", dependencies=[Depends(require_roles("admin", "supervisor"))])
 def download_import_template():
     wb = product_imports.build_template_workbook()
     buf = io.BytesIO()
@@ -76,7 +76,7 @@ def download_import_template():
 @router.post(
     "/import",
     response_model=schemas.ProductImportResult,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 async def import_products(file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not file.filename or not file.filename.lower().endswith((".xlsx", ".xlsm")):
@@ -99,7 +99,7 @@ def read_product(product_id: int, db: Session = Depends(get_db), _=Depends(get_c
 @router.put(
     "/{product_id}",
     response_model=schemas.ProductResponse,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def update_product(product_id: int, data: schemas.ProductCreate, db: Session = Depends(get_db)):
     _validate_references(db, data)
@@ -115,7 +115,7 @@ def update_product(product_id: int, data: schemas.ProductCreate, db: Session = D
     return db_product
 
 
-@router.delete("/{product_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{product_id}", dependencies=[Depends(require_roles("admin", "supervisor"))])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     if crud.get_product(db, product_id) is None:
         raise HTTPException(status_code=404, detail="Produk tidak ditemukan")

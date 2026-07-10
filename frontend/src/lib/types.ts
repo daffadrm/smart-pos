@@ -1,4 +1,4 @@
-export type Role = "admin" | "kasir";
+export type Role = "admin" | "supervisor" | "kasir";
 
 export type User = {
   id: number;
@@ -193,4 +193,7 @@ export type DashboardSummary = {
   total_stock: number;
   low_stock_count: number;
   transactions_today: number;
+  sales_trend: SalesReportRow[];
+  low_stock_items: LowStockRow[];
+  top_products: TopProductRow[];
 };

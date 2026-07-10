@@ -5,7 +5,7 @@ import crud
 import schemas
 from deps import get_db, require_roles
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"], dependencies=[Depends(require_roles("admin"))])
+router = APIRouter(prefix="/dashboard", tags=["dashboard"], dependencies=[Depends(require_roles("admin", "supervisor"))])
 
 
 @router.get("", response_model=schemas.DashboardResponse)

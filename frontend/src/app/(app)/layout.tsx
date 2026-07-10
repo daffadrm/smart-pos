@@ -6,7 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 
-const ADMIN_ONLY_PREFIXES = ["/dashboard", "/master", "/laporan", "/transaksi/tambah-stok"];
+const KASIR_BLOCKED_PREFIXES = ["/dashboard", "/master", "/laporan", "/transaksi/tambah-stok"];
+const SUPERVISOR_BLOCKED_PREFIXES = ["/master/pengguna", "/master/pengaturan-toko"];
 
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -32,8 +33,11 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
     });
   }
 
-  const isAdminOnlyRoute = ADMIN_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  const forbidden = !!user && user.role !== "admin" && isAdminOnlyRoute;
+  const isKasirBlockedRoute = KASIR_BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const isSupervisorBlockedRoute = SUPERVISOR_BLOCKED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const forbidden =
+    !!user &&
+    ((user.role === "kasir" && isKasirBlockedRoute) || (user.role === "supervisor" && isSupervisorBlockedRoute));
 
   useEffect(() => {
     if (loading) return;

@@ -605,6 +605,7 @@ def dashboard_summary(db: Session) -> dict:
         .filter(models.Product.stock <= models.Product.min_stock, models.Product.is_active.is_(True))
         .count()
     )
+    week_start = today - datetime.timedelta(days=6)
     return {
         "sales_today": sales_today,
         "profit_today": profit_today,
@@ -612,4 +613,7 @@ def dashboard_summary(db: Session) -> dict:
         "total_stock": total_stock,
         "low_stock_count": low_stock_count,
         "transactions_today": transactions_today,
+        "sales_trend": sales_report(db, week_start, today),
+        "low_stock_items": low_stock_report(db)[:5],
+        "top_products": top_products_report(db, week_start, today, limit=5),
     }

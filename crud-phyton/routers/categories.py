@@ -14,7 +14,7 @@ router = APIRouter(prefix="/categories", tags=["categories"])
     "",
     response_model=schemas.CategoryResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
     try:
@@ -29,7 +29,7 @@ def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_
 @router.post(
     "/bulk",
     response_model=schemas.CategoryBulkResult,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def bulk_create_categories(data: schemas.CategoryBulkCreate, db: Session = Depends(get_db)):
     if not data.items:
@@ -66,7 +66,7 @@ def read_category(category_id: int, db: Session = Depends(get_db), _=Depends(get
 @router.put(
     "/{category_id}",
     response_model=schemas.CategoryResponse,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def update_category(category_id: int, data: schemas.CategoryCreate, db: Session = Depends(get_db)):
     try:
@@ -81,7 +81,7 @@ def update_category(category_id: int, data: schemas.CategoryCreate, db: Session 
     return db_category
 
 
-@router.delete("/{category_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{category_id}", dependencies=[Depends(require_roles("admin", "supervisor"))])
 def delete_category(category_id: int, db: Session = Depends(get_db)):
     if crud.get_category(db, category_id) is None:
         raise HTTPException(status_code=404, detail="Kategori tidak ditemukan")

@@ -13,7 +13,7 @@ router = APIRouter(prefix="/units", tags=["units"])
     "",
     response_model=schemas.UnitResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_roles("admin"))],
+    dependencies=[Depends(require_roles("admin", "supervisor"))],
 )
 def create_unit(unit: schemas.UnitCreate, db: Session = Depends(get_db)):
     try:
@@ -50,7 +50,7 @@ def read_unit(unit_id: int, db: Session = Depends(get_db), _=Depends(get_current
 
 
 @router.put(
-    "/{unit_id}", response_model=schemas.UnitResponse, dependencies=[Depends(require_roles("admin"))]
+    "/{unit_id}", response_model=schemas.UnitResponse, dependencies=[Depends(require_roles("admin", "supervisor"))]
 )
 def update_unit(unit_id: int, data: schemas.UnitCreate, db: Session = Depends(get_db)):
     try:
@@ -63,7 +63,7 @@ def update_unit(unit_id: int, data: schemas.UnitCreate, db: Session = Depends(ge
     return db_unit
 
 
-@router.delete("/{unit_id}", dependencies=[Depends(require_roles("admin"))])
+@router.delete("/{unit_id}", dependencies=[Depends(require_roles("admin", "supervisor"))])
 def delete_unit(unit_id: int, db: Session = Depends(get_db)):
     if crud.get_unit(db, unit_id) is None:
         raise HTTPException(status_code=404, detail="Satuan tidak ditemukan")

@@ -19,6 +19,7 @@ from database import Base
 
 class RoleEnum(str, enum.Enum):
     admin = "admin"
+    supervisor = "supervisor"
     kasir = "kasir"
 
 

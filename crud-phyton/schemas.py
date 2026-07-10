@@ -304,3 +304,6 @@ class DashboardResponse(BaseModel):
     total_stock: int
     low_stock_count: int
     transactions_today: int
+    sales_trend: List[SalesReportRow]
+    low_stock_items: List[LowStockRow]
+    top_products: List[TopProductRow]
