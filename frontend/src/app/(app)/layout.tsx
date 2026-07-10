@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { Spinner } from "@/components/ui/Spinner";
 
 const KASIR_BLOCKED_PREFIXES = ["/dashboard", "/master", "/laporan", "/transaksi/tambah-stok"];
 const SUPERVISOR_BLOCKED_PREFIXES = ["/master/pengguna", "/master/pengaturan-toko"];
@@ -16,14 +17,18 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [prevPathname, setPrevPathname] = useState(pathname);
 
-  useEffect(() => {
-    setCollapsed(localStorage.getItem("sidebar-collapsed") === "1");
-  }, []);
-
-  useEffect(() => {
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
+
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebar-collapsed") === "1";
+    const t = setTimeout(() => setCollapsed(stored), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   function toggleCollapse() {
     setCollapsed((prev) => {
@@ -52,7 +57,9 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
 
   if (loading || !user || forbidden) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-400">Memuat...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner />
+      </div>
     );
   }
 

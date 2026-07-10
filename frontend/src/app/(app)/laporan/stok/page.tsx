@@ -6,6 +6,7 @@ import type { LowStockRow, StockValueRow } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function LaporanStokPage() {
   const [lowStock, setLowStock] = useState<LowStockRow[]>([]);
@@ -49,8 +50,10 @@ export default function LaporanStokPage() {
             <tbody className="divide-y divide-gray-100">
               {loading && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                    Memuat...
+                  <td colSpan={3} className="px-4 py-6 text-center">
+                    <div className="flex justify-center">
+                      <Spinner size={20} />
+                    </div>
                   </td>
                 </tr>
               )}
@@ -85,8 +88,10 @@ export default function LaporanStokPage() {
             <tbody className="divide-y divide-gray-100">
               {loading && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                    Memuat...
+                  <td colSpan={3} className="px-4 py-6 text-center">
+                    <div className="flex justify-center">
+                      <Spinner size={20} />
+                    </div>
                   </td>
                 </tr>
               )}

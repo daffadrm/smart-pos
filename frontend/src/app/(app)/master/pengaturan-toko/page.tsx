@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { FormRow, Input, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 type FormState = {
   store_name: string;
@@ -70,7 +71,11 @@ export default function PengaturanTokoPage() {
   return (
     <div>
       <PageHeader title="Pengaturan Toko" />
-      {loading && <p className="text-sm text-gray-400">Memuat...</p>}
+      {loading && (
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
+      )}
       {error && <Alert message={error} />}
       {success && <Alert message={success} variant="success" />}
 

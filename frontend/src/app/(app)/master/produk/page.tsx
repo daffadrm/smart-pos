@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormRow, Input, NumberInput, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { ImportProductsModal } from "@/components/ImportProductsModal";
 import { BulkStockModal } from "@/components/BulkStockModal";
 import { Pagination } from "@/components/ui/Pagination";
@@ -314,8 +315,10 @@ export default function ProdukPage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={14} className="px-4 py-6 text-center text-gray-400">
-                  Memuat...
+                <td colSpan={14} className="px-4 py-6 text-center">
+                  <div className="flex justify-center">
+                    <Spinner size={20} />
+                  </div>
                 </td>
               </tr>
             )}

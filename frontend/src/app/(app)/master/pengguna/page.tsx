@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormRow, Input, Select } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { Pagination } from "@/components/ui/Pagination";
 import { RowActions } from "@/components/ui/RowActions";
 
@@ -171,8 +172,10 @@ export default function PenggunaPage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
-                  Memuat...
+                <td colSpan={6} className="px-4 py-6 text-center">
+                  <div className="flex justify-center">
+                    <Spinner size={20} />
+                  </div>
                 </td>
               </tr>
             )}

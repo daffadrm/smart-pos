@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { LineChart } from "@/components/charts/LineChart";
 
 export default function DashboardPage() {
@@ -25,6 +26,11 @@ export default function DashboardPage() {
     <div>
       <PageHeader title="Dashboard" />
       {error && <Alert message={error} />}
+      {!data && !error && (
+        <div className="flex items-center justify-center py-24">
+          <Spinner />
+        </div>
+      )}
       {data && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

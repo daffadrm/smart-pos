@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { FormRow, Input, NumberInput, Select, Textarea } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 const TYPE_LABEL: Record<StockMovementType, string> = {
   in: "Tambah Stok",
@@ -176,7 +177,11 @@ export default function TambahStokPage() {
               <tbody className="divide-y divide-gray-100">
                 {movementsLoading && (
                   <tr>
-                    <td className="px-4 py-4 text-center text-gray-400">Memuat...</td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex justify-center">
+                        <Spinner size={20} />
+                      </div>
+                    </td>
                   </tr>
                 )}
                 {!movementsLoading && movements.length === 0 && (

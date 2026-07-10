@@ -7,6 +7,7 @@ import type { Product, ProductListResponse, Sale, StoreSetting, Unit, UnitListRe
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { Receipt } from "@/components/Receipt";
 
 export default function RiwayatDetailPage() {
@@ -59,7 +60,11 @@ export default function RiwayatDetailPage() {
           }
         />
       </div>
-      {loading && <p className="text-sm text-gray-400">Memuat...</p>}
+      {loading && (
+        <div className="flex justify-center py-10">
+          <Spinner />
+        </div>
+      )}
       {error && <Alert message={error} />}
       {sale && (
         <Receipt

@@ -6,6 +6,7 @@ import type { Product, ProductListResponse, Sale, StoreSetting, Unit, UnitListRe
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { SaleDetailModal } from "@/components/SaleDetailModal";
 
 function saleProfit(sale: Sale): number {
@@ -69,8 +70,10 @@ export default function RiwayatTransaksiPage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-400">
-                  Memuat...
+                <td colSpan={6} className="px-4 py-6 text-center">
+                  <div className="flex justify-center">
+                    <Spinner size={20} />
+                  </div>
                 </td>
               </tr>
             )}

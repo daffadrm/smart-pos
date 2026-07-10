@@ -6,6 +6,7 @@ import type { ProfitReportRow } from "@/lib/types";
 import { formatCurrency, formatDate, daysAgoISO, todayISO } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { LineChart } from "@/components/charts/LineChart";
 
@@ -48,7 +49,9 @@ export default function LaporanLabaPage() {
       <div className="mb-5 rounded-xl border border-gray-200/70 bg-white shadow-sm p-4">
         <p className="mb-3 text-sm font-semibold text-gray-900">Tren Laba Harian</p>
         {loading ? (
-          <p className="py-10 text-center text-sm text-gray-400">Memuat...</p>
+          <div className="flex justify-center py-10">
+            <Spinner />
+          </div>
         ) : (
           <LineChart
             data={rows.map((r) => ({ label: formatDate(r.date), value: r.total_profit }))}
