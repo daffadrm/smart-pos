@@ -73,6 +73,19 @@ def download_import_template():
     )
 
 
+@router.get("/export", dependencies=[Depends(require_roles("admin", "supervisor"))])
+def export_products(db: Session = Depends(get_db)):
+    wb = product_imports.export_products_to_excel(db)
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=produk.xlsx"},
+    )
+
+
 @router.post(
     "/import",
     response_model=schemas.ProductImportResult,

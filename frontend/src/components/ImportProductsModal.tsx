@@ -19,6 +19,7 @@ export function ImportProductsModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProductImportResult | null>(null);
 
@@ -35,10 +36,13 @@ export function ImportProductsModal({
   }
 
   async function handleDownloadTemplate() {
+    setDownloadingTemplate(true);
     try {
       await downloadFile("/products/import/template", "template_produk.xlsx");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Gagal mengunduh template");
+    } finally {
+      setDownloadingTemplate(false);
     }
   }
 
@@ -69,8 +73,12 @@ export function ImportProductsModal({
             2 &amp; 3 opsional untuk produk dengan lebih dari satu satuan), lalu unggah kembali di sini. SKU dibuat
             otomatis oleh sistem. Kategori dan Satuan harus sudah dibuat di menu Master.
           </p>
-          <button onClick={handleDownloadTemplate} className="mt-2 font-medium text-indigo-600 hover:underline">
-            Unduh Template Excel
+          <button
+            onClick={handleDownloadTemplate}
+            disabled={downloadingTemplate}
+            className="mt-2 font-medium text-indigo-600 hover:underline disabled:cursor-not-allowed disabled:text-indigo-300 disabled:no-underline"
+          >
+            {downloadingTemplate ? "Mengunduh..." : "Unduh Template Excel"}
           </button>
         </div>
 

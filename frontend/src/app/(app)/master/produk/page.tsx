@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, downloadFile } from "@/lib/api";
 import type { Category, CategoryListResponse, Product, ProductListResponse, Unit, UnitListResponse } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -54,6 +54,7 @@ export default function ProdukPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -219,6 +220,17 @@ export default function ProdukPage() {
     }
   }
 
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      await downloadFile("/products/export", "produk.xlsx");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Gagal mengunduh data produk");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function handleDelete() {
     if (!deleting) return;
     setDeleteLoading(true);
@@ -240,6 +252,9 @@ export default function ProdukPage() {
         title="Produk"
         action={
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleDownload} disabled={downloading}>
+              {downloading ? "Mengunduh..." : "Download"}
+            </Button>
             <Button variant="secondary" onClick={() => setImportOpen(true)}>
               Import Excel
             </Button>

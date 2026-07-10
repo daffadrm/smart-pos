@@ -87,6 +87,44 @@ def build_template_workbook() -> openpyxl.Workbook:
     return wb
 
 
+def export_products_to_excel(db: Session) -> openpyxl.Workbook:
+    products = db.query(models.Product).order_by(models.Product.name).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Produk"
+    ws.append(TEMPLATE_HEADERS)
+
+    for p in products:
+        base_pu = next((u for u in p.units if u.unit_id == p.base_unit_id), None)
+        extra_pus = [u for u in p.units if u.unit_id != p.base_unit_id][:2]
+
+        row = [
+            p.name,
+            p.barcode or "",
+            p.category.name if p.category else "",
+            p.min_stock,
+            "Ya" if p.is_active else "Tidak",
+            base_pu.unit.name if base_pu and base_pu.unit else "",
+            base_pu.buy_price if base_pu else 0,
+            base_pu.sell_price if base_pu else 0,
+        ]
+        for i in range(2):
+            if i < len(extra_pus):
+                pu = extra_pus[i]
+                row += [pu.unit.name if pu.unit else "", pu.conversion, pu.buy_price, pu.sell_price]
+            else:
+                row += ["", "", "", ""]
+        ws.append(row)
+
+    for col, width in zip(
+        "ABCDEFGHIJKLMNOP",
+        [22, 14, 14, 10, 12, 10, 12, 12, 10, 10, 12, 12, 10, 10, 12, 12],
+    ):
+        ws.column_dimensions[col].width = width
+    return wb
+
+
 def _parse_extra_unit(cell, row, suffix: str):
     """Returns (unit_data | None, error_message | None) for an optional Satuan 2/3 slot."""
     unit_name_raw = cell(row, f"satuan {suffix}")
