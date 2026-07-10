@@ -233,7 +233,7 @@ export default function PenggunaPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Pengguna" : "Tambah Pengguna"}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && <Alert message={formError} />}
+          {formError && <Alert message={formError} inline />}
           <FormRow label="Username" required>
             <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required autoFocus />
           </FormRow>

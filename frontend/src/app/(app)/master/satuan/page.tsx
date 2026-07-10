@@ -193,7 +193,7 @@ export default function SatuanPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Satuan" : "Tambah Satuan"}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && <Alert message={formError} />}
+          {formError && <Alert message={formError} inline />}
           <FormRow label="Nama" required>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoFocus />
           </FormRow>

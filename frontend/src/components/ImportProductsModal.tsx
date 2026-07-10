@@ -82,7 +82,7 @@ export function ImportProductsModal({
           </button>
         </div>
 
-        {error && <Alert message={error} />}
+        {error && <Alert message={error} inline />}
 
         <input
           ref={fileInputRef}
@@ -102,6 +102,7 @@ export function ImportProductsModal({
               message={`${result.created} dari ${result.total_rows} produk berhasil diimpor.${
                 result.errors.length > 0 ? ` ${result.errors.length} gagal.` : ""
               }`}
+              inline
             />
             {result.errors.length > 0 && (
               <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200">

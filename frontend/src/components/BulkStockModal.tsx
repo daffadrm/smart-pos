@@ -139,6 +139,7 @@ export function BulkStockModal({
           <Alert
             variant={successCount === results.length ? "success" : "error"}
             message={`${successCount} dari ${results.length} produk berhasil diproses.`}
+            inline
           />
         )}
 

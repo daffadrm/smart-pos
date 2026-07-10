@@ -82,13 +82,14 @@ export function BulkCategoryModal({
 
         <p className="text-xs text-gray-400">{items.length} kategori siap disimpan</p>
 
-        {error && <Alert message={error} />}
+        {error && <Alert message={error} inline />}
 
         {result && (
           <div className="space-y-2">
             <Alert
               variant={result.created === result.total_rows ? "success" : "error"}
               message={`${result.created} dari ${result.total_rows} kategori berhasil disimpan.`}
+              inline
             />
             {result.errors.length > 0 && (
               <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200">

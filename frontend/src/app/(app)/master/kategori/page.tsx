@@ -206,7 +206,7 @@ export default function KategoriPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Kategori" : "Tambah Kategori"}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && <Alert message={formError} />}
+          {formError && <Alert message={formError} inline />}
           <FormRow label="Nama" required>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoFocus />
           </FormRow>

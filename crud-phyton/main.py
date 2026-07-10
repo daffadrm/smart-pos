@@ -1,14 +1,19 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 import models
 import schemas
 from crud import create_user, get_users
 from database import SessionLocal, engine
 from routers import auth, categories, dashboard, products, reports, sales, stock, store_settings, units, users
+
+logger = logging.getLogger("smartpos")
 
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "admin123"
@@ -58,6 +63,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    """Catch-all for database errors no router already handles specifically
+    (e.g. a value rejected by a Postgres-native enum type after schema drift).
+    Without this, such errors leak a raw Python traceback to the client as a 500."""
+    logger.exception("Unhandled database error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Terjadi kesalahan pada server. Silakan coba lagi atau hubungi admin."},
+    )
+
 
 app.include_router(auth.router)
 app.include_router(users.router)

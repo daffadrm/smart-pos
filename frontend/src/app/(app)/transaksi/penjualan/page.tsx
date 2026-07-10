@@ -339,7 +339,7 @@ export default function PenjualanPage() {
 
             {submitError && (
               <div className="mt-3">
-                <Alert message={submitError} />
+                <Alert message={submitError} inline />
               </div>
             )}
 

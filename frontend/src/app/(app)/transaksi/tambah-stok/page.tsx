@@ -100,8 +100,8 @@ export default function TambahStokPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-gray-200/70 bg-white shadow-sm p-5">
-          {formError && <Alert message={formError} />}
-          {success && <Alert message={success} variant="success" />}
+          {formError && <Alert message={formError} inline />}
+          {success && <Alert message={success} variant="success" inline />}
 
           <FormRow label="Produk" required>
             <Select

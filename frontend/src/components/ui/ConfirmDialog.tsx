@@ -28,7 +28,7 @@ export function ConfirmDialog({
       <p className="text-sm text-gray-600">{message}</p>
       {error && (
         <div className="mt-3">
-          <Alert message={error} />
+          <Alert message={error} inline />
         </div>
       )}
       <div className="mt-5 flex justify-end gap-2">

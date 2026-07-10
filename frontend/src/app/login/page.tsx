@@ -51,7 +51,7 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="mt-6 space-y-4"
         >
-          {error && <Alert message={error} />}
+          {error && <Alert message={error} inline />}
           <div>
             <Label required>Username</Label>
             <Input
