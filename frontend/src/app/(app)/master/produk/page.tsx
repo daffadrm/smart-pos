@@ -1,8 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Download } from "lucide-react";
 import { api, ApiError, downloadFile } from "@/lib/api";
-import type { Category, CategoryListResponse, Product, ProductListResponse, Unit, UnitListResponse } from "@/lib/types";
+import type {
+  Category,
+  CategoryListResponse,
+  Product,
+  ProductListResponse,
+  Unit,
+  UnitListResponse,
+} from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +24,12 @@ import { BulkStockModal } from "@/components/BulkStockModal";
 import { Pagination } from "@/components/ui/Pagination";
 import { RowActions } from "@/components/ui/RowActions";
 
-type UnitRow = { unit_id: string; conversion: string; buy_price: string; sell_price: string };
+type UnitRow = {
+  unit_id: string;
+  conversion: string;
+  buy_price: string;
+  sell_price: string;
+};
 type FormState = {
   name: string;
   barcode: string;
@@ -79,12 +92,17 @@ export default function ProdukPage() {
   }, [search]);
 
   useEffect(() => {
-    Promise.all([api.get<CategoryListResponse>("/categories"), api.get<UnitListResponse>("/units")])
+    Promise.all([
+      api.get<CategoryListResponse>("/categories"),
+      api.get<UnitListResponse>("/units"),
+    ])
       .then(([c, u]) => {
         setCategories(c.items);
         setUnits(u.items);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat data referensi"));
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "Gagal memuat data referensi"),
+      );
   }, []);
 
   function loadProducts() {
@@ -99,7 +117,9 @@ export default function ProdukPage() {
         setTotal(res.total);
         setTotalPages(res.total_pages);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Gagal memuat produk"))
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : "Gagal memuat produk"),
+      )
       .finally(() => setLoading(false));
   }
 
@@ -181,7 +201,10 @@ export default function ProdukPage() {
   }
 
   function addUnitRow() {
-    setForm((f) => ({ ...f, units: [...f.units, { unit_id: "", conversion: "", buy_price: "", sell_price: "" }] }));
+    setForm((f) => ({
+      ...f,
+      units: [...f.units, { unit_id: "", conversion: "", buy_price: "", sell_price: "" }],
+    }));
   }
 
   function removeUnitRow(index: number) {
@@ -253,13 +276,22 @@ export default function ProdukPage() {
         title="Produk"
         action={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleDownload} disabled={downloading}>
-              {downloading ? "Mengunduh..." : "Download"}
+            <Button
+              variant="secondary"
+              onClick={handleDownload}
+              disabled={downloading}
+              aria-label="Download"
+              title="Download"
+            >
+              {downloading ? <Spinner size={16} /> : <Download size={16} />}
             </Button>
-            <Button variant="secondary" onClick={() => setImportOpen(true)}>
+            <Button
+              variant="secondary"
+              onClick={() => setImportOpen(true)}
+            >
               Import Excel
             </Button>
-            <Button onClick={openCreate}>+ Tambah Produk</Button>
+            <Button onClick={openCreate}>+ Produk</Button>
           </div>
         }
       />
@@ -276,10 +308,15 @@ export default function ProdukPage() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2.5">
           <p className="text-sm text-indigo-700">{selectedIds.size} produk dipilih</p>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSelectedMap(new Map())}>
+            <Button
+              variant="secondary"
+              onClick={() => setSelectedMap(new Map())}
+            >
               Batal Pilih
             </Button>
-            <Button onClick={() => setBulkStockOpen(true)}>Tambah Stok untuk Produk Terpilih</Button>
+            <Button onClick={() => setBulkStockOpen(true)}>
+              Tambah Stok untuk Produk Terpilih
+            </Button>
           </div>
         </div>
       )}
@@ -297,25 +334,45 @@ export default function ProdukPage() {
                   title={`Pilih semua ${items.length} produk di halaman ini`}
                 />
               </th>
+              <th className="px-4 py-2.5 text-center font-medium text-gray-500">Aksi</th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Nama</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">SKU</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Kategori</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan Dasar</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Beli</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Jual</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Satuan 2</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Beli 2</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Harga Jual 2</th>
+
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">
+                Satuan Dasar
+              </th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
+                Harga Beli
+              </th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
+                Harga Jual
+              </th>
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">
+                Satuan 2
+              </th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
+                Harga Beli 2
+              </th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
+                Harga Jual 2
+              </th>
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">Stok</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Min. Stok</th>
+              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
+                Min. Stok
+              </th>
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">SKU</th>
+              <th className="px-4 py-2.5 text-left font-medium text-gray-500">
+                Kategori
+              </th>
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Status</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={14} className="px-4 py-6 text-center">
+                <td
+                  colSpan={14}
+                  className="px-4 py-6 text-center"
+                >
                   <div className="flex justify-center">
                     <Spinner size={20} />
                   </div>
@@ -324,68 +381,86 @@ export default function ProdukPage() {
             )}
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={14} className="px-4 py-6 text-center text-gray-400">
+                <td
+                  colSpan={14}
+                  className="px-4 py-6 text-center text-gray-400"
+                >
                   Produk tidak ditemukan
                 </td>
               </tr>
             )}
-            {!loading && items.map((item) => {
-              const basePu = baseUnitPrice(item);
-              const secondPu = secondUnit(item);
-              return (
-              <tr key={item.id} className={selectedIds.has(item.id) ? "bg-indigo-50/40" : undefined}>
-                <td className="px-4 py-2.5">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(item.id)}
-                    onChange={() => toggleSelect(item)}
-                    aria-label={`Pilih ${item.name}`}
-                  />
-                </td>
-                <td className="px-4 py-2.5 font-medium text-gray-900">{item.name}</td>
-                <td className="px-4 py-2.5 text-gray-600">{item.sku}</td>
-                <td className="px-4 py-2.5 text-gray-600">{categoryName(item.category_id)}</td>
-                <td className="px-4 py-2.5 text-gray-600">{unitName(item.base_unit_id)}</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">
-                  {basePu ? formatCurrency(basePu.buy_price) : "-"}
-                </td>
-                <td className="px-4 py-2.5 text-right text-gray-600">
-                  {basePu ? formatCurrency(basePu.sell_price) : "-"}
-                </td>
-                <td className="px-4 py-2.5 text-gray-600">{secondPu ? unitName(secondPu.unit_id) : "-"}</td>
-                <td className="px-4 py-2.5 text-right text-gray-600">
-                  {secondPu ? formatCurrency(secondPu.buy_price) : "-"}
-                </td>
-                <td className="px-4 py-2.5 text-right text-gray-600">
-                  {secondPu ? formatCurrency(secondPu.sell_price) : "-"}
-                </td>
-                <td
-                  className={`px-4 py-2.5 text-right ${item.stock <= item.min_stock ? "font-semibold text-amber-600" : "text-gray-600"}`}
-                >
-                  {item.stock.toLocaleString("id-ID")}
-                </td>
-                <td className="px-4 py-2.5 text-right text-gray-600">{item.min_stock.toLocaleString("id-ID")}</td>
-                <td className="px-4 py-2.5">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      item.is_active ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}
+            {!loading &&
+              items.map((item) => {
+                const basePu = baseUnitPrice(item);
+                const secondPu = secondUnit(item);
+                return (
+                  <tr
+                    key={item.id}
+                    className={selectedIds.has(item.id) ? "bg-indigo-50/40" : undefined}
                   >
-                    {item.is_active ? "Aktif" : "Nonaktif"}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <RowActions
-                    onEdit={() => openEdit(item)}
-                    onDelete={() => {
-                      setDeleteError(null);
-                      setDeleting(item);
-                    }}
-                  />
-                </td>
-              </tr>
-              );
-            })}
+                    <td className="px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={() => toggleSelect(item)}
+                        aria-label={`Pilih ${item.name}`}
+                      />
+                    </td>
+                    <td className="text-center">
+                      <RowActions
+                        onEdit={() => openEdit(item)}
+                        onDelete={() => {
+                          setDeleteError(null);
+                          setDeleting(item);
+                        }}
+                      />
+                    </td>
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{item.name}</td>
+
+                    <td className="px-4 py-2.5 text-gray-600">
+                      {unitName(item.base_unit_id)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {basePu ? formatCurrency(basePu.buy_price) : "-"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {basePu ? formatCurrency(basePu.sell_price) : "-"}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-600">
+                      {secondPu ? unitName(secondPu.unit_id) : "-"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {secondPu ? formatCurrency(secondPu.buy_price) : "-"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {secondPu ? formatCurrency(secondPu.sell_price) : "-"}
+                    </td>
+                    <td
+                      className={`px-4 py-2.5 text-right ${item.stock <= item.min_stock ? "font-semibold text-amber-600" : "text-gray-600"}`}
+                    >
+                      {item.stock.toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-gray-600">
+                      {item.min_stock.toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-600">{item.sku}</td>
+                    <td className="px-4 py-2.5 text-gray-600">
+                      {categoryName(item.category_id)}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          item.is_active ?
+                            "bg-green-50 text-green-700"
+                          : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {item.is_active ? "Aktif" : "Nonaktif"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
         <Pagination
@@ -405,36 +480,78 @@ export default function ProdukPage() {
         />
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Produk" : "Tambah Produk"} wide>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && <Alert message={formError} inline />}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editing ? "Edit Produk" : "Tambah Produk"}
+        wide
+      >
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
+          {formError && (
+            <Alert
+              message={formError}
+              inline
+            />
+          )}
           <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Nama Produk" required>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoFocus />
+            <FormRow
+              label="Nama Produk"
+              required
+            >
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+                autoFocus
+              />
             </FormRow>
-            {editing ? (
+            {editing ?
               <FormRow label="SKU">
-                <Input value={editing.sku} disabled />
+                <Input
+                  value={editing.sku}
+                  disabled
+                />
               </FormRow>
-            ) : (
-              <FormRow label="SKU">
-                <Input value="Dibuat otomatis setelah disimpan" disabled />
+            : <FormRow label="SKU">
+                <Input
+                  value="Dibuat otomatis setelah disimpan"
+                  disabled
+                />
               </FormRow>
-            )}
+            }
             <FormRow label="Barcode">
-              <Input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+              <Input
+                value={form.barcode}
+                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+              />
             </FormRow>
-            <FormRow label="Kategori" required>
-              <Select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
+            <FormRow
+              label="Kategori"
+              required
+            >
+              <Select
+                value={form.category_id}
+                onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                required
+              >
                 <option value="">Pilih kategori</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option
+                    key={c.id}
+                    value={c.id}
+                  >
                     {c.name}
                   </option>
                 ))}
               </Select>
             </FormRow>
-            <FormRow label="Satuan Dasar" required>
+            <FormRow
+              label="Satuan Dasar"
+              required
+            >
               <Select
                 value={form.base_unit_id}
                 onChange={(e) => setForm({ ...form, base_unit_id: e.target.value })}
@@ -442,13 +559,19 @@ export default function ProdukPage() {
               >
                 <option value="">Pilih satuan</option>
                 {units.map((u) => (
-                  <option key={u.id} value={u.id}>
+                  <option
+                    key={u.id}
+                    value={u.id}
+                  >
                     {u.name}
                   </option>
                 ))}
               </Select>
             </FormRow>
-            <FormRow label="Minimum Stok" required>
+            <FormRow
+              label="Minimum Stok"
+              required
+            >
               <NumberInput
                 value={form.min_stock}
                 onChange={(raw) => setForm({ ...form, min_stock: raw })}
@@ -470,56 +593,91 @@ export default function ProdukPage() {
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-700">Konversi Satuan &amp; Harga</p>
-              <Button type="button" variant="secondary" onClick={addUnitRow}>
+              <p className="text-sm font-medium text-gray-700">
+                Konversi Satuan &amp; Harga
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={addUnitRow}
+              >
                 + Baris Satuan
               </Button>
             </div>
             <p className="mb-2 text-xs text-gray-400">
-              Satuan dasar harus ada di daftar ini dengan konversi 1. Contoh: PACK dengan konversi 24 berarti 1 PACK = 24
-              satuan dasar.
+              Satuan dasar harus ada di daftar ini dengan konversi 1. Contoh: PACK dengan
+              konversi 24 berarti 1 PACK = 24 satuan dasar.
             </p>
-            <div className="space-y-2">
+            <div className="hidden gap-2 px-0.5 text-xs font-medium text-gray-500 sm:grid sm:grid-cols-12">
+              <span className="col-span-3">Satuan</span>
+              <span className="col-span-2">Konversi</span>
+              <span className="col-span-3">Harga Beli</span>
+              <span className="col-span-3">Harga Jual</span>
+              <span className="col-span-1" />
+            </div>
+            <div className="mt-1 space-y-3 sm:space-y-2">
               {form.units.map((row, i) => (
-                <div key={i} className="grid grid-cols-12 items-center gap-2">
-                  <Select
-                    className="col-span-3"
-                    value={row.unit_id}
-                    onChange={(e) => updateUnitRow(i, { unit_id: e.target.value })}
-                    required
-                  >
-                    <option value="">Satuan</option>
-                    {units.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <NumberInput
-                    className="col-span-2"
-                    placeholder="Konversi"
-                    value={row.conversion}
-                    onChange={(raw) => updateUnitRow(i, { conversion: raw })}
-                    required
-                  />
-                  <NumberInput
-                    className="col-span-3"
-                    placeholder="Harga beli"
-                    value={row.buy_price}
-                    onChange={(raw) => updateUnitRow(i, { buy_price: raw })}
-                    required
-                  />
-                  <NumberInput
-                    className="col-span-3"
-                    placeholder="Harga jual"
-                    value={row.sell_price}
-                    onChange={(raw) => updateUnitRow(i, { sell_price: raw })}
-                    required
-                  />
+                <div
+                  key={i}
+                  className="grid grid-cols-2 items-end gap-2 sm:grid-cols-12"
+                >
+                  <div className="col-span-2 sm:col-span-3">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 sm:hidden">
+                      Satuan
+                    </label>
+                    <Select
+                      value={row.unit_id}
+                      onChange={(e) => updateUnitRow(i, { unit_id: e.target.value })}
+                      required
+                    >
+                      <option value="">Satuan</option>
+                      {units.map((u) => (
+                        <option
+                          key={u.id}
+                          value={u.id}
+                        >
+                          {u.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="col-span-1 sm:col-span-2">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 sm:hidden">
+                      Konversi
+                    </label>
+                    <NumberInput
+                      placeholder="Konversi"
+                      value={row.conversion}
+                      onChange={(raw) => updateUnitRow(i, { conversion: raw })}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-3">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 sm:hidden">
+                      Harga Beli
+                    </label>
+                    <NumberInput
+                      placeholder="Harga beli"
+                      value={row.buy_price}
+                      onChange={(raw) => updateUnitRow(i, { buy_price: raw })}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-1 sm:col-span-3">
+                    <label className="mb-1 block text-xs font-medium text-gray-500 sm:hidden">
+                      Harga Jual
+                    </label>
+                    <NumberInput
+                      placeholder="Harga jual"
+                      value={row.sell_price}
+                      onChange={(raw) => updateUnitRow(i, { sell_price: raw })}
+                      required
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => removeUnitRow(i)}
-                    className="col-span-1 text-red-500 hover:text-red-700"
+                    className="col-span-1 h-9 text-red-500 hover:text-red-700"
                     disabled={form.units.length <= 1}
                     title="Hapus baris"
                   >
@@ -531,10 +689,17 @@ export default function ProdukPage() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModalOpen(false)}
+            >
               Batal
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving}
+            >
               {saving ? "Menyimpan..." : "Simpan"}
             </Button>
           </div>
@@ -554,7 +719,11 @@ export default function ProdukPage() {
         loading={deleteLoading}
       />
 
-      <ImportProductsModal open={importOpen} onClose={() => setImportOpen(false)} onImported={loadProducts} />
+      <ImportProductsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={loadProducts}
+      />
 
       <BulkStockModal
         open={bulkStockOpen}

@@ -37,7 +37,7 @@ export default function LaporanStokPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
           <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Stok Menipis</p>
           <table className="min-w-full divide-y divide-gray-100 text-sm">
             <thead className="bg-gray-50">
@@ -75,7 +75,7 @@ export default function LaporanStokPage() {
           </table>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
           <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Nilai Stok Saat Ini</p>
           <table className="min-w-full divide-y divide-gray-100 text-sm">
             <thead className="bg-gray-50">

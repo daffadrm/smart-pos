@@ -55,7 +55,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <p className="text-sm font-semibold text-gray-900">Produk Hampir Habis</p>
                 <Link href="/transaksi/tambah-stok" className="text-xs font-medium text-indigo-600 hover:underline">
@@ -89,7 +89,7 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
               <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">
                 Produk Terlaris (7 Hari Terakhir)
               </p>

@@ -60,7 +60,7 @@ export default function LaporanLabaPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
         <p className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Rincian Harian</p>
         <table className="min-w-full divide-y divide-gray-100 text-sm">
           <thead className="bg-gray-50">

@@ -144,7 +144,7 @@ export default function KategoriPage() {
         className="mb-3 max-w-sm"
       />
 
-      <div className="overflow-hidden rounded-xl border border-gray-200/70 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-gray-200/70 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
