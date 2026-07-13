@@ -45,11 +45,19 @@ def read_products(
     is_active: bool | None = None,
     page: int = 1,
     page_size: int | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
 ):
     items, total, total_pages = crud.get_products(
-        db, search=search, is_active=is_active, page=page, page_size=page_size
+        db,
+        search=search,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
     return schemas.ProductListResponse(
         items=items,

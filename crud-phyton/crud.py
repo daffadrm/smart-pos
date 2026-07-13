@@ -1,7 +1,7 @@
 import datetime
 import re
 
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 import exceptions
@@ -265,6 +265,8 @@ def get_products(
     is_active: bool | None = None,
     page: int = 1,
     page_size: int | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ):
     query = db.query(models.Product)
     if search:
@@ -278,7 +280,31 @@ def get_products(
         )
     if is_active is not None:
         query = query.filter(models.Product.is_active.is_(is_active))
-    query = query.order_by(models.Product.name)
+
+    if sort_by == "sku":
+        sort_column = models.Product.sku
+    elif sort_by == "stock":
+        sort_column = models.Product.stock
+    elif sort_by == "min_stock":
+        sort_column = models.Product.min_stock
+    elif sort_by == "category":
+        query = query.join(models.Category, models.Category.id == models.Product.category_id)
+        sort_column = models.Category.name
+    elif sort_by in ("buy_price", "sell_price"):
+        # Base-unit price only: joins the one ProductUnit row matching the product's own
+        # base_unit_id, not any "second unit" row (which varies per product).
+        query = query.join(
+            models.ProductUnit,
+            and_(
+                models.ProductUnit.product_id == models.Product.id,
+                models.ProductUnit.unit_id == models.Product.base_unit_id,
+            ),
+        )
+        sort_column = models.ProductUnit.buy_price if sort_by == "buy_price" else models.ProductUnit.sell_price
+    else:
+        sort_column = models.Product.name
+
+    query = query.order_by(sort_column.desc() if sort_order == "desc" else sort_column.asc())
     return _paginate(query, page, page_size)
 
 

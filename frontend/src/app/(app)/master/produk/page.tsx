@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Download } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Download } from "lucide-react";
 import { api, ApiError, downloadFile } from "@/lib/api";
 import type {
   Category,
@@ -24,6 +24,8 @@ import { BulkStockModal } from "@/components/BulkStockModal";
 import { Pagination } from "@/components/ui/Pagination";
 import { RowActions } from "@/components/ui/RowActions";
 
+type SortKey = "name" | "sku" | "category" | "stock" | "min_stock" | "buy_price" | "sell_price";
+
 type UnitRow = {
   unit_id: string;
   conversion: string;
@@ -39,6 +41,41 @@ type FormState = {
   is_active: boolean;
   units: UnitRow[];
 };
+
+function SortableTh({
+  label,
+  sortKey,
+  align = "left",
+  activeSortKey,
+  sortOrder,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  align?: "left" | "right";
+  activeSortKey: SortKey;
+  sortOrder: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+}) {
+  const active = activeSortKey === sortKey;
+  return (
+    <th
+      className={`cursor-pointer select-none px-4 py-2.5 font-medium text-gray-500 hover:text-gray-700 ${
+        align === "right" ? "text-right" : "text-left"
+      }`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ?
+          sortOrder === "asc" ?
+            <ArrowUp size={12} />
+          : <ArrowDown size={12} />
+        : <ArrowUpDown size={12} className="text-gray-300" />}
+      </span>
+    </th>
+  );
+}
 
 const emptyForm = (): FormState => ({
   name: "",
@@ -76,6 +113,8 @@ export default function ProdukPage() {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState<SortKey>("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const [selectedMap, setSelectedMap] = useState<Map<number, Product>>(new Map());
   const [bulkStockOpen, setBulkStockOpen] = useState(false);
@@ -110,6 +149,8 @@ export default function ProdukPage() {
     if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
     params.set("page", String(page));
     params.set("page_size", String(pageSize));
+    params.set("sort_by", sortBy);
+    params.set("sort_order", sortOrder);
     api
       .get<ProductListResponse>(`/products?${params.toString()}`)
       .then((res) => {
@@ -126,7 +167,18 @@ export default function ProdukPage() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, page, pageSize]);
+  }, [debouncedSearch, page, pageSize, sortBy, sortOrder]);
+
+  function handleSort(key: SortKey) {
+    setLoading(true);
+    if (sortBy === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortOrder("asc");
+    }
+    setPage(1);
+  }
 
   function categoryName(id: number) {
     return categories.find((c) => c.id === id)?.name ?? "-";
@@ -335,17 +387,33 @@ export default function ProdukPage() {
                 />
               </th>
               <th className="px-4 py-2.5 text-center font-medium text-gray-500">Aksi</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">Nama</th>
+              <SortableTh
+                label="Nama"
+                sortKey="name"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
 
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">
                 Satuan Dasar
               </th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
-                Harga Beli
-              </th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
-                Harga Jual
-              </th>
+              <SortableTh
+                label="Harga Beli"
+                sortKey="buy_price"
+                align="right"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
+              <SortableTh
+                label="Harga Jual"
+                sortKey="sell_price"
+                align="right"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">
                 Satuan 2
               </th>
@@ -355,14 +423,36 @@ export default function ProdukPage() {
               <th className="px-4 py-2.5 text-right font-medium text-gray-500">
                 Harga Jual 2
               </th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">Stok</th>
-              <th className="px-4 py-2.5 text-right font-medium text-gray-500">
-                Min. Stok
-              </th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">SKU</th>
-              <th className="px-4 py-2.5 text-left font-medium text-gray-500">
-                Kategori
-              </th>
+              <SortableTh
+                label="Stok"
+                sortKey="stock"
+                align="right"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
+              <SortableTh
+                label="Min. Stok"
+                sortKey="min_stock"
+                align="right"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
+              <SortableTh
+                label="SKU"
+                sortKey="sku"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
+              <SortableTh
+                label="Kategori"
+                sortKey="category"
+                activeSortKey={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              />
               <th className="px-4 py-2.5 text-left font-medium text-gray-500">Status</th>
             </tr>
           </thead>
